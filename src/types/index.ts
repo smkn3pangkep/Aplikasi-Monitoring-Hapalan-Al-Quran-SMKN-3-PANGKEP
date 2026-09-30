@@ -1,0 +1,79 @@
+export type UserRole = 'superadmin' | 'guru_wali';
+
+export interface UserSession {
+  uid: string;
+  email: string;
+  name: string;
+  role: UserRole;
+  nip?: string;
+  classes?: string;
+}
+
+export interface Teacher {
+  id: string;
+  nip: string;
+  name: string;
+  email: string;
+  password?: string;
+  phone: string;
+  classes: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface Student {
+  id: string;
+  nisn: string;
+  name: string;
+  className: string;
+  teacherNip: string;
+  teacherName: string;
+  parentPhone?: string;
+  totalMemorized: number; // Jumlah surah yang sudah hapal (dari 37)
+  totalInProcess: number; // Jumlah surah dalam proses
+  totalRemaining: number; // Jumlah surah belum hapal
+  lastUpdated: string;
+  createdAt: string;
+}
+
+export type MemorizationStatus = 'belum_hapal' | 'proses_hapal' | 'sudah_hapal';
+
+export interface SurahMeta {
+  number: number;
+  name: string;
+  arabicName: string;
+  totalAyat: number;
+  meaning: string;
+  type: 'Makkiyah' | 'Madaniyah';
+}
+
+export interface MemorizationRecord {
+  id?: string;
+  studentId: string;
+  surahNumber: number;
+  surahName: string;
+  arabicName: string;
+  totalAyat: number;
+  ayatRange: string; // e.g. "Ayat 1 - 40" atau "Lengkap (1 - 40)"
+  status: MemorizationStatus;
+  targetDate?: string; // Tanggal target penyelesaian
+  completedDate?: string; // Tanggal tuntas
+  grade?: 'Mumtaz' | 'Jayyid Jiddan' | 'Jayyid' | 'Maqbul' | '';
+  notes?: string;
+  verifiedByNip?: string;
+  verifiedByName?: string;
+  updatedAt: string;
+}
+
+export interface ActivityLog {
+  id: string;
+  actorNip: string;
+  actorName: string;
+  actorRole: string;
+  action: string;
+  description: string;
+  studentName?: string;
+  surahName?: string;
+  timestamp: string;
+}

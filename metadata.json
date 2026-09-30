@@ -1,0 +1,6 @@
+{
+  "name": "Monitoring Hafalan Al-Qur'an Juz 30 - SMKN 3 Pangkep",
+  "description": "Sistem Informasi Monitoring Hafalan Al-Qur'an Juz 30 untuk Guru Wali dan Siswa SMKN 3 Pangkep dengan integrasi Firebase.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

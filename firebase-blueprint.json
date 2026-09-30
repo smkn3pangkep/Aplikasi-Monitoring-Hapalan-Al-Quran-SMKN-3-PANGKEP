@@ -1,0 +1,117 @@
+{
+  "entities": {
+    "Admin": {
+      "title": "Admin",
+      "description": "Administrator and Superadmin profiles with system privileges",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "name": { "type": "string", "maxLength": 100 },
+        "role": { "type": "string", "enum": ["superadmin", "admin"] },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["uid", "email", "role"]
+    },
+    "Teacher": {
+      "title": "Teacher",
+      "description": "Guru Wali records at SMKN 3 Pangkep",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "nip": { "type": "string", "maxLength": 30 },
+        "name": { "type": "string", "maxLength": 100 },
+        "email": { "type": "string", "format": "email" },
+        "password": { "type": "string", "maxLength": 50 },
+        "phone": { "type": "string", "maxLength": 20 },
+        "classes": { "type": "string", "maxLength": 100 },
+        "isActive": { "type": "boolean" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["nip", "name", "password", "isActive"]
+    },
+    "Student": {
+      "title": "Student",
+      "description": "Siswa SMKN 3 Pangkep registered for Juz 30 Quran memorization",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "nisn": { "type": "string", "maxLength": 30 },
+        "name": { "type": "string", "maxLength": 100 },
+        "className": { "type": "string", "maxLength": 50 },
+        "teacherNip": { "type": "string", "maxLength": 30 },
+        "teacherName": { "type": "string", "maxLength": 100 },
+        "parentPhone": { "type": "string", "maxLength": 20 },
+        "totalMemorized": { "type": "number" },
+        "totalInProcess": { "type": "number" },
+        "totalRemaining": { "type": "number" },
+        "lastUpdated": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["nisn", "name", "className", "teacherNip"]
+    },
+    "MemorizationRecord": {
+      "title": "MemorizationRecord",
+      "description": "Detail status hafalan surah Juz 30 untuk setiap siswa",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "studentId": { "type": "string" },
+        "surahNumber": { "type": "number" },
+        "surahName": { "type": "string", "maxLength": 50 },
+        "arabicName": { "type": "string", "maxLength": 50 },
+        "totalAyat": { "type": "number" },
+        "ayatRange": { "type": "string", "maxLength": 50 },
+        "status": { "type": "string", "enum": ["belum_hapal", "proses_hapal", "sudah_hapal"] },
+        "targetDate": { "type": "string" },
+        "completedDate": { "type": "string" },
+        "grade": { "type": "string", "enum": ["Mumtaz", "Jayyid Jiddan", "Jayyid", "Maqbul", ""] },
+        "notes": { "type": "string", "maxLength": 300 },
+        "verifiedByNip": { "type": "string", "maxLength": 30 },
+        "verifiedByName": { "type": "string", "maxLength": 100 },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["studentId", "surahNumber", "status"]
+    },
+    "ActivityLog": {
+      "title": "ActivityLog",
+      "description": "Log aktivitas guru dan admin dalam memantau hafalan siswa",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "actorNip": { "type": "string" },
+        "actorName": { "type": "string" },
+        "actorRole": { "type": "string" },
+        "action": { "type": "string" },
+        "description": { "type": "string", "maxLength": 300 },
+        "studentName": { "type": "string" },
+        "surahName": { "type": "string" },
+        "timestamp": { "type": "string" }
+      },
+      "required": ["actorName", "action", "description", "timestamp"]
+    }
+  },
+  "firestore": {
+    "/admins/{adminId}": {
+      "schema": "Admin",
+      "description": "Superadmin and Admin accounts"
+    },
+    "/teachers/{teacherId}": {
+      "schema": "Teacher",
+      "description": "Data Guru Wali and access credentials"
+    },
+    "/students/{studentId}": {
+      "schema": "Student",
+      "description": "Data Siswa bimbingan SMKN 3 Pangkep"
+    },
+    "/students/{studentId}/hafalan/{surahId}": {
+      "schema": "MemorizationRecord",
+      "description": "Status hafalan per surah untuk siswa"
+    },
+    "/activity_logs/{logId}": {
+      "schema": "ActivityLog",
+      "description": "Aktivitas guru dan admin"
+    }
+  }
+}

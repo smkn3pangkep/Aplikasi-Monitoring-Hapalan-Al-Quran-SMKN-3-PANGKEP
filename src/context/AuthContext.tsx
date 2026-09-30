@@ -1,0 +1,173 @@
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
+import { db } from '../firebase';
+import { UserSession } from '../types';
+import { initializeDatabase } from '../services/dataService';
+
+interface AuthContextType {
+  user: UserSession | null;
+  loading: boolean;
+  loginAsAdmin: (email: string, pass: string) => Promise<{ success: boolean; message?: string }>;
+  loginAsGuru: (nip: string, pass: string) => Promise<{ success: boolean; message?: string }>;
+  logout: () => void;
+}
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+const STORAGE_KEY = 'smkn3_tahfidz_session';
+
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [user, setUser] = useState<UserSession | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+
+  useEffect(() => {
+    // Initialize database once on app start
+    initializeDatabase().catch(console.error);
+
+    // Restore saved session from localStorage
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        setUser(JSON.parse(saved));
+      }
+    } catch (e) {
+      console.error('Failed to load session:', e);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const loginAsAdmin = async (email: string, pass: string): Promise<{ success: boolean; message?: string }> => {
+    setLoading(true);
+    try {
+      const cleanEmail = email.trim().toLowerCase();
+      const cleanPass = pass.trim();
+
+      // Check configured admin credentials (supports admin@smkn3pangkep.sch.id, superadmin, admin with bismillah or admin123)
+      const isAdminUsernameMatch =
+        cleanEmail === 'admin@smkn3pangkep.sch.id' ||
+        cleanEmail === 'superadmin' ||
+        cleanEmail === 'admin';
+      const isAdminPasswordMatch =
+        cleanPass === 'bismillah' || cleanPass === 'admin123';
+
+      if (isAdminUsernameMatch && isAdminPasswordMatch) {
+        const session: UserSession = {
+          uid: 'superadmin-1',
+          email: 'admin@smkn3pangkep.sch.id',
+          name: 'Admin SMKN 3 Pangkep',
+          role: 'superadmin',
+        };
+        setUser(session);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
+        setLoading(false);
+        return { success: true };
+      }
+
+      // Check Firestore admins collection if custom admin was added
+      const adminDoc = await getDoc(doc(db, 'admins', 'superadmin'));
+      if (adminDoc.exists()) {
+        const data = adminDoc.data();
+        if (data.email?.toLowerCase() === cleanEmail && data.password === cleanPass) {
+          const session: UserSession = {
+            uid: data.uid || 'superadmin-1',
+            email: data.email,
+            name: data.name || 'Super Admin SMKN 3 Pangkep',
+            role: 'superadmin',
+          };
+          setUser(session);
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
+          setLoading(false);
+          return { success: true };
+        }
+      }
+
+      setLoading(false);
+      return { success: false, message: 'Email atau kata sandi Super Admin salah.' };
+    } catch (error: any) {
+      setLoading(false);
+      return { success: false, message: error.message || 'Terjadi kesalahan saat verifikasi admin.' };
+    }
+  };
+
+  const loginAsGuru = async (nip: string, pass: string): Promise<{ success: boolean; message?: string }> => {
+    setLoading(true);
+    try {
+      const cleanNip = nip.trim();
+      const cleanPass = pass.trim();
+
+      if (!cleanNip || !cleanPass) {
+        setLoading(false);
+        return { success: false, message: 'NIP dan Kata Sandi wajib diisi.' };
+      }
+
+      const q = query(collection(db, 'teachers'), where('nip', '==', cleanNip));
+      const querySnap = await getDocs(q);
+
+      if (querySnap.empty) {
+        setLoading(false);
+        return { success: false, message: `Guru dengan NIP "${cleanNip}" tidak ditemukan. Silakan hubungi Administrator.` };
+      }
+
+      let matchedUser: UserSession | null = null;
+      let isInactive = false;
+      let passwordMismatch = true;
+
+      querySnap.forEach((doc) => {
+        const data = doc.data();
+        if (data.password === cleanPass) {
+          passwordMismatch = false;
+          if (data.isActive === false) {
+            isInactive = true;
+          } else {
+            matchedUser = {
+              uid: doc.id,
+              email: data.email || `${cleanNip}@smkn3pangkep.sch.id`,
+              name: data.name,
+              role: 'guru_wali',
+              nip: data.nip,
+              classes: data.classes,
+            };
+          }
+        }
+      });
+
+      if (isInactive) {
+        setLoading(false);
+        return { success: false, message: 'Akun Anda sedang dinonaktifkan oleh Administrator.' };
+      }
+
+      if (passwordMismatch || !matchedUser) {
+        setLoading(false);
+        return { success: false, message: 'Kata sandi tidak sesuai. Silakan periksa kembali atau minta reset ke Admin.' };
+      }
+
+      setUser(matchedUser);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(matchedUser));
+      setLoading(false);
+      return { success: true };
+    } catch (error: any) {
+      setLoading(false);
+      return { success: false, message: error.message || 'Terjadi kesalahan sistem saat login guru.' };
+    }
+  };
+
+  const logout = () => {
+    setUser(null);
+    localStorage.removeItem(STORAGE_KEY);
+  };
+
+  return (
+    <AuthContext.Provider value={{ user, loading, loginAsAdmin, loginAsGuru, logout }}>
+      {children}
+    </AuthContext.Provider>
+  );
+};
+
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+};
