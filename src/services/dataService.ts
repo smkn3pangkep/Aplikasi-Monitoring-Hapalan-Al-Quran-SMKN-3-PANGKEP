@@ -13,7 +13,7 @@ import {
 } from 'firebase/firestore';
 import * as XLSX from 'xlsx';
 import { db, handleFirestoreError, OperationType } from '../firebase';
-import { Teacher, Student, MemorizationRecord, ActivityLog, MemorizationStatus } from '../types';
+import { Teacher, Student, MemorizationRecord, ActivityLog, MemorizationStatus, DatabaseBackupPayload } from '../types';
 import { INITIAL_TEACHERS, INITIAL_STUDENTS } from '../data/seedData';
 import { JUZ_30_SURAHS } from '../data/juz30Data';
 
@@ -750,3 +750,203 @@ export async function processExcelUpload(
     reader.readAsArrayBuffer(file);
   });
 }
+
+// ----------------- DATABASE BACKUP & RESTORE SERVICE -----------------
+
+/**
+ * Buat file cadangan (backup) lengkap seluruh koleksi database Firestore
+ */
+export async function createDatabaseBackup(actorInfo?: { name: string; nip: string }): Promise<DatabaseBackupPayload> {
+  try {
+    // 1. Fetch all teachers
+    const teachersSnap = await getDocs(collection(db, TEACHERS_COL));
+    const teachers: Teacher[] = [];
+    teachersSnap.forEach((d) => teachers.push({ ...(d.data() as Teacher), id: d.id }));
+
+    // 2. Fetch all students & their hafalan records
+    const studentsSnap = await getDocs(collection(db, STUDENTS_COL));
+    const students: Student[] = [];
+    const hafalanMap: { [studentId: string]: MemorizationRecord[] } = {};
+    let totalHafalanRecords = 0;
+
+    for (const studentDoc of studentsSnap.docs) {
+      const studentData = { ...(studentDoc.data() as Student), id: studentDoc.id };
+      students.push(studentData);
+
+      // Fetch hafalan subcollection for each student
+      const hafalanSnap = await getDocs(collection(db, STUDENTS_COL, studentDoc.id, 'hafalan'));
+      const records: MemorizationRecord[] = [];
+      hafalanSnap.forEach((hDoc) => {
+        records.push(hDoc.data() as MemorizationRecord);
+      });
+      hafalanMap[studentDoc.id] = records;
+      totalHafalanRecords += records.length;
+    }
+
+    // 3. Fetch activity logs
+    const logsSnap = await getDocs(query(collection(db, LOGS_COL), orderBy('timestamp', 'desc'), limit(500)));
+    const activityLogs: ActivityLog[] = [];
+    logsSnap.forEach((lDoc) => activityLogs.push({ ...(lDoc.data() as ActivityLog), id: lDoc.id }));
+
+    const now = new Date();
+    const backupPayload: DatabaseBackupPayload = {
+      metadata: {
+        app: 'Tahfidz-SMKN3Pangkep',
+        version: '1.0',
+        exportedAt: now.toISOString(),
+        exportedBy: actorInfo?.name || 'Super Admin',
+        school: 'SMK Negeri 3 Pangkep',
+        totalTeachers: teachers.length,
+        totalStudents: students.length,
+        totalHafalanRecords,
+      },
+      teachers,
+      students,
+      hafalan: hafalanMap,
+      activityLogs,
+    };
+
+    // Trigger browser download of JSON file
+    const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(backupPayload, null, 2));
+    const downloadAnchor = document.createElement('a');
+    const timestampStr = now.toISOString().replace(/[:.]/g, '-').slice(0, 19);
+    const fileName = `Backup_Database_Tahfidz_SMKN3Pangkep_${timestampStr}.json`;
+    downloadAnchor.setAttribute('href', dataStr);
+    downloadAnchor.setAttribute('download', fileName);
+    document.body.appendChild(downloadAnchor);
+    downloadAnchor.click();
+    downloadAnchor.remove();
+
+    await logActivity({
+      actorNip: actorInfo?.nip || 'admin',
+      actorName: actorInfo?.name || 'Super Admin',
+      actorRole: 'Super Admin',
+      action: 'Backup Database',
+      description: `Berhasil mencadangkan database (${teachers.length} guru, ${students.length} siswa, ${totalHafalanRecords} catatan hafalan)`,
+    });
+
+    return backupPayload;
+  } catch (error) {
+    handleFirestoreError(error, OperationType.GET, 'backup');
+    throw error;
+  }
+}
+
+/**
+ * Pulihkan database Firestore dari file cadangan JSON
+ */
+export async function restoreDatabaseBackup(
+  payload: DatabaseBackupPayload,
+  mode: 'replace' | 'merge',
+  onProgress?: (message: string, percent: number) => void,
+  actorInfo?: { name: string; nip: string }
+): Promise<{ success: boolean; teacherCount: number; studentCount: number; hafalanCount: number }> {
+  try {
+    if (!payload || !payload.metadata || !Array.isArray(payload.teachers) || !Array.isArray(payload.students)) {
+      throw new Error('Format file backup tidak valid atau rusak.');
+    }
+
+    onProgress?.('Mempersiapkan pemulihan database...', 10);
+
+    // If replace mode, clear current teachers & students first
+    if (mode === 'replace') {
+      onProgress?.('Membersihkan data database saat ini...', 20);
+      await clearAllDummyData();
+    }
+
+    // 1. Restore Teachers
+    onProgress?.('Memulihkan data Guru Wali...', 35);
+    let teacherCount = 0;
+    for (const teacher of payload.teachers) {
+      const teacherId = teacher.id || `teacher-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`;
+      await setDoc(doc(db, TEACHERS_COL, teacherId), {
+        ...teacher,
+        id: teacherId,
+        updatedAt: new Date().toISOString(),
+      });
+      teacherCount++;
+    }
+
+    // 2. Restore Students & Hafalan
+    onProgress?.('Memulihkan data Siswa...', 55);
+    let studentCount = 0;
+    let hafalanCount = 0;
+
+    const totalStudentsToRestore = payload.students.length;
+    for (let i = 0; i < totalStudentsToRestore; i++) {
+      const student = payload.students[i];
+      const studentId = student.id || `student-${Date.now()}-${i}`;
+
+      await setDoc(doc(db, STUDENTS_COL, studentId), {
+        ...student,
+        id: studentId,
+        lastUpdated: new Date().toISOString(),
+      });
+      studentCount++;
+
+      // Restore student hafalan records if present in backup
+      const studentRecords = payload.hafalan ? payload.hafalan[student.id || studentId] : undefined;
+      if (Array.isArray(studentRecords) && studentRecords.length > 0) {
+        for (const record of studentRecords) {
+          const surahNum = record.surahNumber.toString();
+          await setDoc(doc(db, STUDENTS_COL, studentId, 'hafalan', surahNum), {
+            ...record,
+            studentId,
+            updatedAt: record.updatedAt || new Date().toISOString(),
+          });
+          hafalanCount++;
+        }
+      } else {
+        // If not in backup, initialize standard surahs for this student
+        for (const surah of JUZ_30_SURAHS) {
+          const hafalanRef = doc(db, STUDENTS_COL, studentId, 'hafalan', surah.number.toString());
+          await setDoc(hafalanRef, {
+            studentId,
+            surahNumber: surah.number,
+            surahName: surah.name,
+            arabicName: surah.arabicName,
+            totalAyat: surah.totalAyat,
+            ayatRange: `1 - ${surah.totalAyat}`,
+            status: 'belum_hapal',
+            updatedAt: new Date().toISOString(),
+          });
+          hafalanCount++;
+        }
+      }
+
+      const progressPct = 55 + Math.round(((i + 1) / Math.max(1, totalStudentsToRestore)) * 35);
+      onProgress?.(`Memulihkan data siswa (${i + 1}/${totalStudentsToRestore})...`, progressPct);
+    }
+
+    // 3. Restore Activity Logs if any
+    if (Array.isArray(payload.activityLogs)) {
+      for (const log of payload.activityLogs.slice(0, 100)) {
+        const logId = log.id || `log-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`;
+        await setDoc(doc(db, LOGS_COL, logId), log);
+      }
+    }
+
+    onProgress?.('Menyelesaikan verifikasi integritas...', 95);
+
+    await logActivity({
+      actorNip: actorInfo?.nip || 'admin',
+      actorName: actorInfo?.name || 'Super Admin',
+      actorRole: 'Super Admin',
+      action: 'Restore Database',
+      description: `Berhasil memulihkan database [Mode: ${mode === 'replace' ? 'Timpa Penuh' : 'Gabung'}] (${teacherCount} guru, ${studentCount} siswa, ${hafalanCount} catatan hafalan)`,
+    });
+
+    onProgress?.('Pemulihan database selesai dengan sukses!', 100);
+
+    return {
+      success: true,
+      teacherCount,
+      studentCount,
+      hafalanCount,
+    };
+  } catch (error) {
+    handleFirestoreError(error, OperationType.WRITE, 'restore');
+    throw error;
+  }
+}
+

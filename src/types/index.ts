@@ -77,3 +77,21 @@ export interface ActivityLog {
   surahName?: string;
   timestamp: string;
 }
+
+export interface DatabaseBackupPayload {
+  metadata: {
+    app: string;
+    version: string;
+    exportedAt: string;
+    exportedBy: string;
+    school: string;
+    totalTeachers: number;
+    totalStudents: number;
+    totalHafalanRecords: number;
+  };
+  teachers: Teacher[];
+  students: Student[];
+  hafalan: { [studentId: string]: MemorizationRecord[] };
+  activityLogs?: ActivityLog[];
+}
+

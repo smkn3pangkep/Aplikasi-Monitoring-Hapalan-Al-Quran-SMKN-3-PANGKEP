@@ -18,6 +18,7 @@ import {
 import { Teacher, Student } from '../types';
 import { useAuth } from '../context/AuthContext';
 import { TOTAL_TARGET_SURAHS } from '../data/juz30Data';
+import { exportStudentsToExcel } from '../utils/reportExport';
 import {
   addStudent,
   deleteStudent,
@@ -271,6 +272,33 @@ export const DataBimbinganView: React.FC<DataBimbinganViewProps> = ({
             </button>
           )}
 
+          {/* Unduh Laporan Rekapitulasi Excel (.xlsx) */}
+          <button
+            type="button"
+            onClick={() =>
+              exportStudentsToExcel(displayedStudents, {
+                teacherName: !isSuperAdmin
+                  ? user?.name
+                  : selectedTeacherFilter === 'all'
+                  ? 'Semua Guru'
+                  : teachers.find((t) => t.nip === selectedTeacherFilter)?.name,
+                className: selectedClassFilter,
+                filterLabel: `Guru: ${
+                  !isSuperAdmin
+                    ? user?.name
+                    : selectedTeacherFilter === 'all'
+                    ? 'Semua Guru'
+                    : teachers.find((t) => t.nip === selectedTeacherFilter)?.name
+                } | Kelas: ${selectedClassFilter}`,
+              })
+            }
+            className="px-3.5 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-bold transition flex items-center gap-1.5 shadow-md shadow-emerald-900/20 cursor-pointer"
+            title="Unduh Laporan Rekapitulasi Progres Hafalan Siswa (.xlsx)"
+          >
+            <FileSpreadsheet className="w-4 h-4" />
+            <span>Unduh Laporan Excel</span>
+          </button>
+
           <button
             type="button"
             onClick={downloadExcelTemplate}
@@ -376,6 +404,47 @@ export const DataBimbinganView: React.FC<DataBimbinganViewProps> = ({
 
       {/* Main Table: Data Bimbingan Guru Wali dan Siswa */}
       <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+        {/* Table Subheader Bar */}
+        <div className="p-4 bg-slate-50/70 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+          <div className="flex items-center gap-2">
+            <span className="font-bold text-slate-800">
+              Daftar Siswa Bimbingan ({displayedStudents.length} siswa)
+            </span>
+            <span className="text-slate-400">•</span>
+            <span className="text-slate-500">
+              Target: {TOTAL_TARGET_SURAHS} Surah (Al-Fatihah & Juz 30)
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() =>
+                exportStudentsToExcel(displayedStudents, {
+                  teacherName: !isSuperAdmin
+                    ? user?.name
+                    : selectedTeacherFilter === 'all'
+                    ? 'Semua Guru'
+                    : teachers.find((t) => t.nip === selectedTeacherFilter)?.name,
+                  className: selectedClassFilter,
+                  filterLabel: `Guru: ${
+                    !isSuperAdmin
+                      ? user?.name
+                      : selectedTeacherFilter === 'all'
+                      ? 'Semua Guru'
+                      : teachers.find((t) => t.nip === selectedTeacherFilter)?.name
+                  } | Kelas: ${selectedClassFilter}`,
+                })
+              }
+              className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold transition flex items-center gap-1.5 shadow-sm cursor-pointer"
+              title="Unduh data tabel saat ini dalam format Excel (.xlsx)"
+            >
+              <FileSpreadsheet className="w-3.5 h-3.5" />
+              <span>Unduh Laporan Excel (.xlsx)</span>
+            </button>
+          </div>
+        </div>
+
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase tracking-wider font-semibold">

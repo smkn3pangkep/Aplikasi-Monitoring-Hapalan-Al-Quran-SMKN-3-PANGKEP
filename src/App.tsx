@@ -6,6 +6,7 @@ import { DashboardView } from './components/DashboardView';
 import { DataBimbinganView } from './components/DataBimbinganView';
 import { DaftarSiswaView } from './components/DaftarSiswaView';
 import { AkunGuruView } from './components/AkunGuruView';
+import { BackupRestoreView } from './components/BackupRestoreView';
 import { DetailHafalanModal } from './components/DetailHafalanModal';
 import { Teacher, Student } from './types';
 import { subscribeTeachers, subscribeStudents } from './services/dataService';
@@ -130,8 +131,11 @@ const MainApp: React.FC = () => {
     return <LoginView />;
   }
 
-  // Fallback for non-superadmin trying to access kontrol_sandi
-  const currentTab = !isSuperAdmin && activeTab === 'kontrol_sandi' ? 'bimbingan' : activeTab;
+  // Fallback for non-superadmin trying to access admin-only tabs
+  const currentTab =
+    !isSuperAdmin && (activeTab === 'kontrol_sandi' || activeTab === 'backup_restore')
+      ? 'bimbingan'
+      : activeTab;
 
   // 2. Logged In Dashboard & Navigation
   return (
@@ -168,6 +172,10 @@ const MainApp: React.FC = () => {
 
         {currentTab === 'kontrol_sandi' && isSuperAdmin && (
           <AkunGuruView teachers={teachers} />
+        )}
+
+        {currentTab === 'backup_restore' && isSuperAdmin && (
+          <BackupRestoreView teachers={teachers} students={students} />
         )}
       </main>
 

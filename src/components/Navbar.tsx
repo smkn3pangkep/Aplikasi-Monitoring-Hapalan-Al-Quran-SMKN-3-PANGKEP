@@ -5,6 +5,7 @@ import {
   Users,
   BookMarked,
   KeyRound,
+  Database,
   LogOut,
   Shield,
   UserCheck,
@@ -12,7 +13,7 @@ import {
   School,
 } from 'lucide-react';
 
-export type NavTab = 'dashboard' | 'bimbingan' | 'siswa' | 'kontrol_sandi';
+export type NavTab = 'dashboard' | 'bimbingan' | 'siswa' | 'kontrol_sandi' | 'backup_restore';
 
 interface NavbarProps {
   activeTab: NavTab;
@@ -92,18 +93,33 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onSelectTab }) => {
             </button>
 
             {isSuperAdmin && (
-              <button
-                type="button"
-                onClick={() => onSelectTab('kontrol_sandi')}
-                className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs lg:text-sm font-semibold transition ${
-                  activeTab === 'kontrol_sandi'
-                    ? 'bg-emerald-600 text-white shadow-sm'
-                    : 'text-slate-300 hover:text-white hover:bg-slate-700/50'
-                }`}
-              >
-                <KeyRound className="w-4 h-4" />
-                <span>Kontrol Sandi Akun</span>
-              </button>
+              <>
+                <button
+                  type="button"
+                  onClick={() => onSelectTab('kontrol_sandi')}
+                  className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs lg:text-sm font-semibold transition ${
+                    activeTab === 'kontrol_sandi'
+                      ? 'bg-emerald-600 text-white shadow-sm'
+                      : 'text-slate-300 hover:text-white hover:bg-slate-700/50'
+                  }`}
+                >
+                  <KeyRound className="w-4 h-4" />
+                  <span>Kontrol Sandi</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => onSelectTab('backup_restore')}
+                  className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs lg:text-sm font-semibold transition ${
+                    activeTab === 'backup_restore'
+                      ? 'bg-emerald-600 text-white shadow-sm'
+                      : 'text-slate-300 hover:text-white hover:bg-slate-700/50'
+                  }`}
+                >
+                  <Database className="w-4 h-4" />
+                  <span>Backup & Restore</span>
+                </button>
+              </>
             )}
           </nav>
 
@@ -175,15 +191,26 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onSelectTab }) => {
             Daftar Siswa
           </button>
           {isSuperAdmin && (
-            <button
-              type="button"
-              onClick={() => onSelectTab('kontrol_sandi')}
-              className={`px-3 py-1.5 rounded-lg whitespace-nowrap transition ${
-                activeTab === 'kontrol_sandi' ? 'bg-emerald-600 text-white' : 'text-slate-400'
-              }`}
-            >
-              Kontrol Sandi
-            </button>
+            <>
+              <button
+                type="button"
+                onClick={() => onSelectTab('kontrol_sandi')}
+                className={`px-3 py-1.5 rounded-lg whitespace-nowrap transition ${
+                  activeTab === 'kontrol_sandi' ? 'bg-emerald-600 text-white' : 'text-slate-400'
+                }`}
+              >
+                Kontrol Sandi
+              </button>
+              <button
+                type="button"
+                onClick={() => onSelectTab('backup_restore')}
+                className={`px-3 py-1.5 rounded-lg whitespace-nowrap transition ${
+                  activeTab === 'backup_restore' ? 'bg-emerald-600 text-white' : 'text-slate-400'
+                }`}
+              >
+                Backup & Restore
+              </button>
+            </>
           )}
         </div>
       </div>
