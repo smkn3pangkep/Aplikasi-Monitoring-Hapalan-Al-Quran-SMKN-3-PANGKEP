@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { Student, Teacher } from '../types';
 import { useAuth } from '../context/AuthContext';
+import { TOTAL_TARGET_SURAHS } from '../data/juz30Data';
 import { addStudent, updateStudent, deleteStudent } from '../services/dataService';
 
 interface DaftarSiswaViewProps {
@@ -73,8 +74,8 @@ export const DaftarSiswaView: React.FC<DaftarSiswaViewProps> = ({
       s.className.toLowerCase().includes(searchQuery.toLowerCase());
 
     let matchProgress = true;
-    if (progressFilter === 'khatam') matchProgress = s.totalMemorized >= 37;
-    else if (progressFilter === 'proses') matchProgress = s.totalMemorized > 0 && s.totalMemorized < 37;
+    if (progressFilter === 'khatam') matchProgress = s.totalMemorized >= TOTAL_TARGET_SURAHS;
+    else if (progressFilter === 'proses') matchProgress = s.totalMemorized > 0 && s.totalMemorized < TOTAL_TARGET_SURAHS;
     else if (progressFilter === 'awal') matchProgress = s.totalMemorized === 0;
 
     return matchClass && matchSearch && matchProgress;
@@ -285,7 +286,7 @@ export const DaftarSiswaView: React.FC<DaftarSiswaViewProps> = ({
                 progressFilter === 'khatam' ? 'bg-emerald-600 font-bold text-white shadow-xs' : 'text-slate-600'
               }`}
             >
-              Khatam 37
+              Khatam {TOTAL_TARGET_SURAHS}
             </button>
             <button
               type="button"
@@ -325,8 +326,8 @@ export const DaftarSiswaView: React.FC<DaftarSiswaViewProps> = ({
             </div>
           ) : (
             filteredStudents.map((s) => {
-              const pct = Math.round((s.totalMemorized / 37) * 100);
-              const isKhatam = s.totalMemorized >= 37;
+              const pct = Math.round((s.totalMemorized / TOTAL_TARGET_SURAHS) * 100);
+              const isKhatam = s.totalMemorized >= TOTAL_TARGET_SURAHS;
 
               return (
                 <div
@@ -404,17 +405,17 @@ export const DaftarSiswaView: React.FC<DaftarSiswaViewProps> = ({
                     {/* Progress Bar & Breakdown */}
                     <div className="mt-4 space-y-2">
                       <div className="flex justify-between text-xs font-semibold">
-                        <span className="text-slate-600">Progres Juz 30</span>
-                        <span className="text-emerald-700">{s.totalMemorized} dari 37 Surah</span>
+                        <span className="text-slate-600">Progres Target Hafalan</span>
+                        <span className="text-emerald-700">{s.totalMemorized} dari {TOTAL_TARGET_SURAHS} Surah</span>
                       </div>
 
                       <div className="h-2.5 w-full bg-slate-100 rounded-full overflow-hidden flex shadow-inner">
                         <div
-                          style={{ width: `${(s.totalMemorized / 37) * 100}%` }}
+                          style={{ width: `${(s.totalMemorized / TOTAL_TARGET_SURAHS) * 100}%` }}
                           className="bg-emerald-500 transition-all duration-300"
                         />
                         <div
-                          style={{ width: `${(s.totalInProcess / 37) * 100}%` }}
+                          style={{ width: `${(s.totalInProcess / TOTAL_TARGET_SURAHS) * 100}%` }}
                           className="bg-amber-400 transition-all duration-300"
                         />
                       </div>
@@ -439,7 +440,7 @@ export const DaftarSiswaView: React.FC<DaftarSiswaViewProps> = ({
 
                   {/* Card bottom action */}
                   <div className="mt-5 pt-3 border-t border-slate-100 flex items-center justify-between text-xs font-bold text-emerald-700 group-hover:text-emerald-800">
-                    <span>Buka 37 Surah Juz 30</span>
+                    <span>Buka {TOTAL_TARGET_SURAHS} Surah (Al-Fatihah & Juz 30)</span>
                     <ArrowRight className="w-4 h-4 transform group-hover:translate-x-1 transition" />
                   </div>
                 </div>
@@ -474,7 +475,7 @@ export const DaftarSiswaView: React.FC<DaftarSiswaViewProps> = ({
                   </tr>
                 ) : (
                   filteredStudents.map((s) => {
-                    const pct = Math.round((s.totalMemorized / 37) * 100);
+                    const pct = Math.round((s.totalMemorized / TOTAL_TARGET_SURAHS) * 100);
                     return (
                       <tr
                         key={s.id}
@@ -513,7 +514,7 @@ export const DaftarSiswaView: React.FC<DaftarSiswaViewProps> = ({
                               }}
                               className="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-bold text-xs"
                             >
-                              Buka 37 Surah
+                              Buka Hafalan
                             </button>
                             <button
                               type="button"

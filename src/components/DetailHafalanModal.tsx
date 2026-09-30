@@ -22,7 +22,7 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import { Student, MemorizationRecord, MemorizationStatus } from '../types';
-import { JUZ_30_SURAHS } from '../data/juz30Data';
+import { JUZ_30_SURAHS, TOTAL_TARGET_SURAHS } from '../data/juz30Data';
 import { subscribeStudentHafalan, updateHafalanRecord, updateStudent, deleteStudent } from '../services/dataService';
 import { useAuth } from '../context/AuthContext';
 
@@ -214,8 +214,8 @@ export const DetailHafalanModal: React.FC<DetailHafalanModalProps> = ({ student,
   // Count stats
   const totalSudah = records.filter((r) => r.status === 'sudah_hapal').length;
   const totalProses = records.filter((r) => r.status === 'proses_hapal').length;
-  const totalBelum = Math.max(0, 37 - totalSudah - totalProses);
-  const percentCompleted = Math.round((totalSudah / 37) * 100);
+  const totalBelum = Math.max(0, TOTAL_TARGET_SURAHS - totalSudah - totalProses);
+  const percentCompleted = Math.round((totalSudah / TOTAL_TARGET_SURAHS) * 100);
 
   // In-process surahs list for WhatsApp preview
   const inProcessSurahs = records
@@ -238,7 +238,7 @@ export const DetailHafalanModal: React.FC<DetailHafalanModalProps> = ({ student,
       year: 'numeric',
     });
 
-    return `*LAPORAN PERKEMBANGAN HAFALAN AL-QUR'AN (JUZ 30)*\n` +
+    return `*LAPORAN PERKEMBANGAN HAFALAN AL-QUR'AN (AL-FATIHAH & JUZ 30)*\n` +
       `*SMKN 3 PANGKEP - TAHFIDZ GURU WALI*\n` +
       `Tanggal: ${todayStr}\n\n` +
       `Assalamu'alaikum Warahmatullahi Wabarakatuh.\n\n` +
@@ -247,9 +247,9 @@ export const DetailHafalanModal: React.FC<DetailHafalanModalProps> = ({ student,
       `• *NISN* : ${student.nisn}\n` +
       `• *Kelas* : ${student.className}\n` +
       `• *Guru Wali* : ${student.teacherName}\n\n` +
-      `Berikut kami sampaikan ringkasan progres hafalan Al-Qur'an Juz 30 ananda:\n` +
+      `Berikut kami sampaikan ringkasan progres hafalan Al-Qur'an ananda:\n` +
       `━━━━━━━━━━━━━━━━━━━━\n` +
-      `✅ *Sudah Hapal (Tuntas)* : ${totalSudah} dari 37 Surah (${percentCompleted}%)\n` +
+      `✅ *Sudah Hapal (Tuntas)* : ${totalSudah} dari ${TOTAL_TARGET_SURAHS} Surah (${percentCompleted}%)\n` +
       `⏳ *Sedang Proses Hapal* : ${totalProses} Surah\n` +
       `📖 *Belum Dihafal* : ${totalBelum} Surah\n\n` +
       (inProcessSurahs ? `🎯 *Fokus Hafalan Saat Ini*:\n${inProcessSurahs}\n\n` : '') +
@@ -347,7 +347,7 @@ export const DetailHafalanModal: React.FC<DetailHafalanModalProps> = ({ student,
             <div className="bg-emerald-800/30 border border-emerald-700/40 rounded-xl p-2.5">
               <span className="text-[11px] text-emerald-300 uppercase font-semibold block">Sudah Hapal</span>
               <div className="text-xl font-black text-white mt-0.5">
-                {totalSudah} <span className="text-xs font-normal text-emerald-300">/ 37 Surah</span>
+                {totalSudah} <span className="text-xs font-normal text-emerald-300">/ {TOTAL_TARGET_SURAHS} Surah</span>
               </div>
               <div className="text-[10px] text-emerald-200 mt-0.5">{percentCompleted}% Selesai</div>
             </div>
@@ -397,7 +397,7 @@ export const DetailHafalanModal: React.FC<DetailHafalanModalProps> = ({ student,
                   : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-100'
               }`}
             >
-              Semua Surah (37)
+              Semua Surah ({TOTAL_TARGET_SURAHS})
             </button>
 
             <button
@@ -577,7 +577,7 @@ export const DetailHafalanModal: React.FC<DetailHafalanModalProps> = ({ student,
 
         {/* Modal Footer */}
         <div className="p-4 bg-slate-50 border-t border-slate-200 flex justify-between items-center text-xs text-slate-500">
-          <span>Menampilkan 37 Surah Juz 'Amma (Surah An-Naba' - An-Nas)</span>
+          <span>Menampilkan {TOTAL_TARGET_SURAHS} Surah (Surah Al-Fatihah & Juz 30 / An-Naba' - An-Nas)</span>
           <button
             type="button"
             onClick={onClose}

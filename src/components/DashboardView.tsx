@@ -17,6 +17,7 @@ import { Teacher, Student, ActivityLog } from '../types';
 import { useAuth } from '../context/AuthContext';
 import { BarChart } from './BarChart';
 import { subscribeActivityLogs } from '../services/dataService';
+import { TOTAL_TARGET_SURAHS } from '../data/juz30Data';
 
 interface DashboardViewProps {
   teachers: Teacher[];
@@ -66,9 +67,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     0
   );
 
-  // Khatam Juz 30 count (students with 37 surahs)
+  // Khatam Al-Fatihah & Juz 30 count (students with all target surahs)
   const khatamCount = displayStudents.filter(
-    (s) => (Number(s.totalMemorized) || 0) >= 37
+    (s) => (Number(s.totalMemorized) || 0) >= TOTAL_TARGET_SURAHS
   ).length;
 
   return (
@@ -169,11 +170,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </p>
         </div>
 
-        {/* Stat 4: Khatam Juz 30 */}
+        {/* Stat 4: Khatam Al-Fatihah & Juz 30 */}
         <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-sm hover:shadow-md transition">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
-              Khatam Juz 30 (37 Surah)
+              Khatam Target ({TOTAL_TARGET_SURAHS} Surah)
             </span>
             <div className="p-2.5 rounded-xl bg-purple-50 text-purple-600 border border-purple-100">
               <Award className="w-5 h-5" />
@@ -189,7 +190,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </div>
       </div>
 
-      {/* Visual Bar Chart Progres Hafalan Juz 30 */}
+      {/* Visual Bar Chart Progres Hafalan */}
       <BarChart students={displayStudents} />
 
       {/* 2-Columns: Top Students Progress & Activity Log Feed */}
@@ -203,7 +204,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 Daftar Siswa Terdepan (Progres Tertinggi)
               </h3>
               <p className="text-xs text-slate-500">
-                Klik salah satu siswa untuk langsung membuka kartu hafalan Juz 30
+                Klik salah satu siswa untuk langsung membuka kartu hafalan Al-Fatihah & Juz 30
               </p>
             </div>
             <button
@@ -222,7 +223,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               .slice(0, 5)
               .map((student) => {
                 const memorized = Number(student.totalMemorized) || 0;
-                const pct = Math.round((memorized / 37) * 100);
+                const pct = Math.round((memorized / TOTAL_TARGET_SURAHS) * 100);
                 return (
                   <div
                     key={student.id}
@@ -246,7 +247,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                     <div className="flex items-center gap-3">
                       <div className="text-right">
                         <span className="text-xs font-bold text-emerald-700">
-                          {memorized} / 37 Surah
+                          {memorized} / {TOTAL_TARGET_SURAHS} Surah
                         </span>
                         <div className="w-28 sm:w-36 h-2 bg-slate-100 rounded-full overflow-hidden mt-1">
                           <div

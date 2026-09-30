@@ -30,7 +30,7 @@ export interface Student {
   teacherNip: string;
   teacherName: string;
   parentPhone?: string;
-  totalMemorized: number; // Jumlah surah yang sudah hapal (dari 37)
+  totalMemorized: number; // Jumlah surah yang sudah hapal (dari 38: Al-Fatihah & 37 Surah Juz 30)
   totalInProcess: number; // Jumlah surah dalam proses
   totalRemaining: number; // Jumlah surah belum hapal
   lastUpdated: string;

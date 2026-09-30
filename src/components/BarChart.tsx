@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Student } from '../types';
+import { TOTAL_TARGET_SURAHS } from '../data/juz30Data';
 
 interface BarChartProps {
   students: Student[];
@@ -68,10 +69,10 @@ export const BarChart: React.FC<BarChartProps> = ({ students }) => {
         <div>
           <h3 className="text-base font-bold text-slate-800 flex items-center gap-2">
             <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block" />
-            Grafik Visual Progres Hafalan Juz 30 Siswa
+            Grafik Visual Progres Hafalan Siswa (Al-Fatihah & Juz 30)
           </h3>
           <p className="text-xs text-slate-500 mt-0.5">
-            Akumulasi capaian surah Juz 30 (total 37 surah per siswa)
+            Akumulasi capaian surah (total {TOTAL_TARGET_SURAHS} surah per siswa)
           </p>
         </div>
 
@@ -122,7 +123,7 @@ export const BarChart: React.FC<BarChartProps> = ({ students }) => {
             </div>
           ) : (
             classData.map((cls) => {
-              const maxPossible = cls.studentsCount * 37 || 1;
+              const maxPossible = cls.studentsCount * TOTAL_TARGET_SURAHS || 1;
               const sudahPct = Math.round((cls.totalMemorized / maxPossible) * 100);
               const prosesPct = Math.round((cls.totalInProcess / maxPossible) * 100);
               const belumPct = Math.max(0, 100 - sudahPct - prosesPct);

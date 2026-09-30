@@ -232,13 +232,13 @@ export async function addStudent(studentData: Omit<Student, 'id' | 'createdAt' |
       id,
       totalMemorized: 0,
       totalInProcess: 0,
-      totalRemaining: 37,
+      totalRemaining: JUZ_30_SURAHS.length,
       createdAt: new Date().toISOString(),
       lastUpdated: new Date().toISOString(),
     };
     await setDoc(doc(db, STUDENTS_COL, id), newStudent);
 
-    // Initialize all 37 surahs as belum_hapal
+    // Initialize all surahs (Al-Fatihah + Juz 30) as belum_hapal
     for (const surah of JUZ_30_SURAHS) {
       const hafalanRef = doc(db, STUDENTS_COL, id, 'hafalan', surah.number.toString());
       const record: MemorizationRecord = {
@@ -409,7 +409,7 @@ export async function updateHafalanRecord(
       else if (data.status === 'proses_hapal') inProcess++;
     });
 
-    const remaining = Math.max(0, 37 - memorized - inProcess);
+    const remaining = Math.max(0, JUZ_30_SURAHS.length - memorized - inProcess);
 
     await updateDoc(doc(db, STUDENTS_COL, studentId), {
       totalMemorized: memorized,

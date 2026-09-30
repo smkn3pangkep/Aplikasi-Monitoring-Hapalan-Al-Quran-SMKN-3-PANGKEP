@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { Teacher, Student } from '../types';
 import { useAuth } from '../context/AuthContext';
+import { TOTAL_TARGET_SURAHS } from '../data/juz30Data';
 import {
   addStudent,
   deleteStudent,
@@ -398,7 +399,7 @@ export const DataBimbinganView: React.FC<DataBimbinganViewProps> = ({
                 </tr>
               ) : (
                 displayedStudents.map((s, idx) => {
-                  const pct = Math.round((s.totalMemorized / 37) * 100);
+                  const pct = Math.round((s.totalMemorized / TOTAL_TARGET_SURAHS) * 100);
                   return (
                     <tr
                       key={s.id}
@@ -443,7 +444,7 @@ export const DataBimbinganView: React.FC<DataBimbinganViewProps> = ({
                       <td onClick={() => onSelectStudent(s)} className="py-3.5 px-4 text-center">
                         <div className="inline-flex flex-col items-center">
                           <span className="font-bold text-emerald-700">
-                            {s.totalMemorized} / 37 Surah
+                            {s.totalMemorized} / {TOTAL_TARGET_SURAHS} Surah
                           </span>
                           <div className="w-20 h-1.5 bg-slate-100 rounded-full overflow-hidden mt-1">
                             <div
@@ -462,7 +463,7 @@ export const DataBimbinganView: React.FC<DataBimbinganViewProps> = ({
                               onSelectStudent(s);
                             }}
                             className="p-1.5 px-2.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-semibold text-[11px] transition flex items-center gap-1 cursor-pointer"
-                            title="Buka Kartu & 37 Surah Hafalan Siswa"
+                            title={`Buka Kartu & ${TOTAL_TARGET_SURAHS} Surah Hafalan Siswa`}
                           >
                             Buka Hafalan
                           </button>

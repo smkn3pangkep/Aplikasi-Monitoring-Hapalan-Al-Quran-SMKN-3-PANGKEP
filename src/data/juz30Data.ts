@@ -1,6 +1,7 @@
 import { SurahMeta } from '../types';
 
 export const JUZ_30_SURAHS: SurahMeta[] = [
+  { number: 1, name: "Al-Fatihah", arabicName: "الفاتحة", totalAyat: 7, meaning: "Pembukaan", type: "Makkiyah" },
   { number: 78, name: "An-Naba'", arabicName: "النبأ", totalAyat: 40, meaning: "Berita Besar", type: "Makkiyah" },
   { number: 79, name: "An-Nazi'at", arabicName: "النازعات", totalAyat: 46, meaning: "Malaikat-Malaikat Yang Mencabut", type: "Makkiyah" },
   { number: 80, name: "'Abasa", arabicName: "عبس", totalAyat: 42, meaning: "Ia Bermuka Masam", type: "Makkiyah" },
@@ -39,3 +40,6 @@ export const JUZ_30_SURAHS: SurahMeta[] = [
   { number: 113, name: "Al-Falaq", arabicName: "الفلق", totalAyat: 5, meaning: "Waktu Subuh", type: "Makkiyah" },
   { number: 114, name: "An-Nas", arabicName: "الناس", totalAyat: 6, meaning: "Manusia", type: "Makkiyah" }
 ];
+
+export const TOTAL_TARGET_SURAHS = JUZ_30_SURAHS.length; // 38 Surah (Al-Fatihah + 37 Surah Juz 30)
+
