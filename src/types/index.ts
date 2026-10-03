@@ -1,4 +1,4 @@
-export type UserRole = 'superadmin' | 'guru_wali';
+export type UserRole = 'superadmin' | 'admin_staf' | 'guru_wali';
 
 export interface UserSession {
   uid: string;
@@ -78,6 +78,24 @@ export interface ActivityLog {
   timestamp: string;
 }
 
+export type MediaCategory = 'foto' | 'video' | 'folder_drive' | 'dokumen';
+
+export interface DocumentationRecord {
+  id: string;
+  title: string; // Judul kegiatan / bimbingan
+  date: string; // Tanggal kegiatan (YYYY-MM-DD)
+  teacherNip: string;
+  teacherName: string;
+  className: string; // Kelas atau kelompok bimbingan
+  studentId?: string; // Opsional jika untuk siswa tertentu
+  studentName?: string; // Opsional
+  driveUrl: string; // Link Google Drive (foto/video/folder)
+  mediaType: MediaCategory; // Jenis media
+  description?: string; // Catatan / keterangan tambahan
+  createdAt: string;
+  updatedAt?: string;
+}
+
 export interface DatabaseBackupPayload {
   metadata: {
     app: string;
@@ -88,10 +106,12 @@ export interface DatabaseBackupPayload {
     totalTeachers: number;
     totalStudents: number;
     totalHafalanRecords: number;
+    totalDocumentations?: number;
   };
   teachers: Teacher[];
   students: Student[];
   hafalan: { [studentId: string]: MemorizationRecord[] };
+  documentations?: DocumentationRecord[];
   activityLogs?: ActivityLog[];
 }
 

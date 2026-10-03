@@ -48,20 +48,23 @@ export const DaftarSiswaView: React.FC<DaftarSiswaViewProps> = ({
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
+  const isSuperAdmin = user?.role === 'superadmin';
+  const canManageAll = user?.role === 'superadmin' || user?.role === 'admin_staf';
+
   // Form states
   const [formName, setFormName] = useState('');
   const [formNisn, setFormNisn] = useState('');
   const [formClass, setFormClass] = useState('');
-  const [formTeacherNip, setFormTeacherNip] = useState(user?.nip || teachers[0]?.nip || '');
+  const [formTeacherNip, setFormTeacherNip] = useState(
+    canManageAll ? (teachers[0]?.nip || '') : (user?.nip || '')
+  );
   const [formParentPhone, setFormParentPhone] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  const isSuperAdmin = user?.role === 'superadmin';
-
   // Guru segregation: only their students
-  const baseStudents = isSuperAdmin
+  const baseStudents = canManageAll
     ? students
     : students.filter((s) => s.teacherNip === user?.nip);
 
@@ -87,7 +90,7 @@ export const DaftarSiswaView: React.FC<DaftarSiswaViewProps> = ({
     setFormName('');
     setFormNisn('');
     setFormClass('');
-    setFormTeacherNip(user?.nip || teachers[0]?.nip || '');
+    setFormTeacherNip(canManageAll ? (teachers[0]?.nip || '') : (user?.nip || ''));
     setFormParentPhone('');
     setFormError(null);
     setShowAddModal(true);
@@ -188,7 +191,7 @@ export const DaftarSiswaView: React.FC<DaftarSiswaViewProps> = ({
             Daftar Kartu Hafalan Juz 30 Siswa
           </h2>
           <p className="text-xs text-slate-500 mt-0.5">
-            {isSuperAdmin
+            {canManageAll
               ? 'Memantau seluruh siswa SMKN 3 Pangkep. Anda dapat menambah, mengedit, atau menghapus data siswa.'
               : `Menampilkan daftar anak bimbingan ${user?.name}. Anda dapat menambah, mengedit (nama, NIS, kelas), atau menghapus data siswa.`}
           </p>
@@ -635,7 +638,7 @@ export const DaftarSiswaView: React.FC<DaftarSiswaViewProps> = ({
                 <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
                   Guru Wali Pembimbing
                 </label>
-                {isSuperAdmin ? (
+                {canManageAll ? (
                   <select
                     value={formTeacherNip}
                     onChange={(e) => setFormTeacherNip(e.target.value)}

@@ -7,9 +7,11 @@ import { DataBimbinganView } from './components/DataBimbinganView';
 import { DaftarSiswaView } from './components/DaftarSiswaView';
 import { AkunGuruView } from './components/AkunGuruView';
 import { BackupRestoreView } from './components/BackupRestoreView';
+import { BacaQuranView } from './components/BacaQuranView';
+import { DokumentasiHafalanView } from './components/DokumentasiHafalanView';
 import { DetailHafalanModal } from './components/DetailHafalanModal';
-import { Teacher, Student } from './types';
-import { subscribeTeachers, subscribeStudents } from './services/dataService';
+import { Teacher, Student, DocumentationRecord } from './types';
+import { subscribeTeachers, subscribeStudents, subscribeDocumentations } from './services/dataService';
 import { testConnection } from './firebase';
 import { BookOpen, CheckCircle2, School } from 'lucide-react';
 
@@ -69,6 +71,7 @@ const MainApp: React.FC = () => {
   const [activeTab, setActiveTab] = useState<NavTab>('dashboard');
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
+  const [documentations, setDocumentations] = useState<DocumentationRecord[]>([]);
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [dbConnected, setDbConnected] = useState<boolean>(true);
 
@@ -88,7 +91,7 @@ const MainApp: React.FC = () => {
     testConnection().then((ok) => setDbConnected(ok));
   }, []);
 
-  // Subscribe to Teachers and Students in real-time
+  // Subscribe to Teachers, Students, and Documentations in real-time
   useEffect(() => {
     if (!user) return;
 
@@ -107,9 +110,15 @@ const MainApp: React.FC = () => {
       }
     }, teacherNip);
 
+    // Subscribe to Documentations
+    const unsubDocs = subscribeDocumentations((list) => {
+      setDocumentations(list || []);
+    });
+
     return () => {
       if (typeof unsubTeachers === 'function') unsubTeachers();
       if (typeof unsubStudents === 'function') unsubStudents();
+      if (typeof unsubDocs === 'function') unsubDocs();
     };
   }, [user]);
 
@@ -154,6 +163,8 @@ const MainApp: React.FC = () => {
           />
         )}
 
+        {currentTab === 'baca_quran' && <BacaQuranView />}
+
         {currentTab === 'bimbingan' && (
           <DataBimbinganView
             teachers={teachers}
@@ -167,6 +178,14 @@ const MainApp: React.FC = () => {
             students={students}
             teachers={teachers}
             onSelectStudent={(s) => setSelectedStudent(s)}
+          />
+        )}
+
+        {currentTab === 'dokumentasi' && (
+          <DokumentasiHafalanView
+            teachers={teachers}
+            students={students}
+            documentations={documentations}
           />
         )}
 

@@ -13,7 +13,7 @@ import {
 } from 'firebase/firestore';
 import * as XLSX from 'xlsx';
 import { db, handleFirestoreError, OperationType } from '../firebase';
-import { Teacher, Student, MemorizationRecord, ActivityLog, MemorizationStatus, DatabaseBackupPayload } from '../types';
+import { Teacher, Student, MemorizationRecord, ActivityLog, MemorizationStatus, DatabaseBackupPayload, DocumentationRecord } from '../types';
 import { INITIAL_TEACHERS, INITIAL_STUDENTS } from '../data/seedData';
 import { JUZ_30_SURAHS } from '../data/juz30Data';
 
@@ -21,6 +21,7 @@ const TEACHERS_COL = 'teachers';
 const STUDENTS_COL = 'students';
 const ADMINS_COL = 'admins';
 const LOGS_COL = 'activity_logs';
+const DOCUMENTATIONS_COL = 'documentations';
 
 // Initialize default data into Firestore if empty
 export async function initializeDatabase() {
@@ -35,6 +36,20 @@ export async function initializeDatabase() {
         password: 'bismillah', // configured default superadmin
         name: 'Super Admin SMKN 3 Pangkep',
         role: 'superadmin',
+        createdAt: new Date().toISOString(),
+      });
+    }
+
+    // 2. Ensure Admin Staf document exists (adminhapalan@smkn3pangkep.sch.id / bismilllah)
+    const staffDocRef = doc(db, ADMINS_COL, 'adminhapalan');
+    const staffSnap = await getDoc(staffDocRef);
+    if (!staffSnap.exists()) {
+      await setDoc(staffDocRef, {
+        uid: 'adminstaf-1',
+        email: 'adminhapalan@smkn3pangkep.sch.id',
+        password: 'bismilllah',
+        name: 'Admin Staf Hafalan SMKN 3 Pangkep',
+        role: 'admin_staf',
         createdAt: new Date().toISOString(),
       });
     }
@@ -751,6 +766,124 @@ export async function processExcelUpload(
   });
 }
 
+// ----------------- DOKUMENTASI HAFALAN SERVICE -----------------
+
+// Helper to strip undefined values so Firestore setDoc/updateDoc never errors
+function cleanUndefined<T extends Record<string, any>>(obj: T): T {
+  const result: any = {};
+  for (const [key, value] of Object.entries(obj)) {
+    if (value !== undefined) {
+      result[key] = value;
+    }
+  }
+  return result;
+}
+
+export function subscribeDocumentations(
+  callback: (docs: DocumentationRecord[]) => void
+) {
+  try {
+    return onSnapshot(
+      collection(db, DOCUMENTATIONS_COL),
+      (snap) => {
+        const list: DocumentationRecord[] = [];
+        snap.forEach((d) => {
+          list.push({ ...(d.data() as DocumentationRecord), id: d.id });
+        });
+        // Sort descending by date, then by createdAt
+        list.sort((a, b) => {
+          const dateA = a.date || a.createdAt;
+          const dateB = b.date || b.createdAt;
+          return dateB.localeCompare(dateA);
+        });
+        callback(list);
+      },
+      (error) => {
+        handleFirestoreError(error, OperationType.GET, DOCUMENTATIONS_COL);
+      }
+    );
+  } catch (error) {
+    handleFirestoreError(error, OperationType.GET, DOCUMENTATIONS_COL);
+  }
+}
+
+export async function addDocumentation(
+  docData: Omit<DocumentationRecord, 'id' | 'createdAt'>,
+  actor: { nip: string; name: string; role: string }
+): Promise<string> {
+  const path = DOCUMENTATIONS_COL;
+  try {
+    const id = `doc-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
+    const newDoc = cleanUndefined({
+      ...docData,
+      id,
+      createdAt: new Date().toISOString(),
+    });
+    await setDoc(doc(db, DOCUMENTATIONS_COL, id), newDoc);
+
+    await logActivity({
+      actorNip: actor.nip,
+      actorName: actor.name,
+      actorRole: actor.role === 'superadmin' ? 'Super Admin' : 'Guru Wali',
+      action: 'Upload Dokumentasi',
+      description: `Menambahkan dokumentasi bukti monitoring hafalan: "${docData.title}" (${docData.className}${docData.studentName ? ` - ${docData.studentName}` : ''})`,
+    });
+
+    return id;
+  } catch (error) {
+    handleFirestoreError(error, OperationType.WRITE, path);
+    throw error;
+  }
+}
+
+export async function updateDocumentation(
+  id: string,
+  docData: Partial<DocumentationRecord>,
+  actor: { nip: string; name: string; role: string }
+): Promise<void> {
+  const path = `${DOCUMENTATIONS_COL}/${id}`;
+  try {
+    const cleaned = cleanUndefined({
+      ...docData,
+      updatedAt: new Date().toISOString(),
+    });
+    await updateDoc(doc(db, DOCUMENTATIONS_COL, id), cleaned);
+
+    await logActivity({
+      actorNip: actor.nip,
+      actorName: actor.name,
+      actorRole: actor.role === 'superadmin' ? 'Super Admin' : 'Guru Wali',
+      action: 'Update Dokumentasi',
+      description: `Memperbarui dokumentasi bukti monitoring: "${docData.title || id}"`,
+    });
+  } catch (error) {
+    handleFirestoreError(error, OperationType.UPDATE, path);
+    throw error;
+  }
+}
+
+export async function deleteDocumentation(
+  id: string,
+  title: string,
+  actor: { nip: string; name: string; role: string }
+): Promise<void> {
+  const path = `${DOCUMENTATIONS_COL}/${id}`;
+  try {
+    await deleteDoc(doc(db, DOCUMENTATIONS_COL, id));
+
+    await logActivity({
+      actorNip: actor.nip,
+      actorName: actor.name,
+      actorRole: actor.role === 'superadmin' ? 'Super Admin' : 'Guru Wali',
+      action: 'Hapus Dokumentasi',
+      description: `Menghapus dokumentasi bukti monitoring: "${title}"`,
+    });
+  } catch (error) {
+    handleFirestoreError(error, OperationType.DELETE, path);
+    throw error;
+  }
+}
+
 // ----------------- DATABASE BACKUP & RESTORE SERVICE -----------------
 
 /**
@@ -783,7 +916,12 @@ export async function createDatabaseBackup(actorInfo?: { name: string; nip: stri
       totalHafalanRecords += records.length;
     }
 
-    // 3. Fetch activity logs
+    // 3. Fetch all documentations
+    const docsSnap = await getDocs(collection(db, DOCUMENTATIONS_COL));
+    const documentations: DocumentationRecord[] = [];
+    docsSnap.forEach((dDoc) => documentations.push({ ...(dDoc.data() as DocumentationRecord), id: dDoc.id }));
+
+    // 4. Fetch activity logs
     const logsSnap = await getDocs(query(collection(db, LOGS_COL), orderBy('timestamp', 'desc'), limit(500)));
     const activityLogs: ActivityLog[] = [];
     logsSnap.forEach((lDoc) => activityLogs.push({ ...(lDoc.data() as ActivityLog), id: lDoc.id }));
@@ -799,10 +937,12 @@ export async function createDatabaseBackup(actorInfo?: { name: string; nip: stri
         totalTeachers: teachers.length,
         totalStudents: students.length,
         totalHafalanRecords,
+        totalDocumentations: documentations.length,
       },
       teachers,
       students,
       hafalan: hafalanMap,
+      documentations,
       activityLogs,
     };
 
@@ -822,7 +962,7 @@ export async function createDatabaseBackup(actorInfo?: { name: string; nip: stri
       actorName: actorInfo?.name || 'Super Admin',
       actorRole: 'Super Admin',
       action: 'Backup Database',
-      description: `Berhasil mencadangkan database (${teachers.length} guru, ${students.length} siswa, ${totalHafalanRecords} catatan hafalan)`,
+      description: `Berhasil mencadangkan database (${teachers.length} guru, ${students.length} siswa, ${totalHafalanRecords} catatan hafalan, ${documentations.length} dokumentasi)`,
     });
 
     return backupPayload;
@@ -848,14 +988,19 @@ export async function restoreDatabaseBackup(
 
     onProgress?.('Mempersiapkan pemulihan database...', 10);
 
-    // If replace mode, clear current teachers & students first
+    // If replace mode, clear current teachers, students, & documentations first
     if (mode === 'replace') {
       onProgress?.('Membersihkan data database saat ini...', 20);
       await clearAllDummyData();
+      // Also clear documentations
+      const currentDocs = await getDocs(collection(db, DOCUMENTATIONS_COL));
+      for (const d of currentDocs.docs) {
+        await deleteDoc(d.ref);
+      }
     }
 
     // 1. Restore Teachers
-    onProgress?.('Memulihkan data Guru Wali...', 35);
+    onProgress?.('Memulihkan data Guru Wali...', 30);
     let teacherCount = 0;
     for (const teacher of payload.teachers) {
       const teacherId = teacher.id || `teacher-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`;
@@ -868,7 +1013,7 @@ export async function restoreDatabaseBackup(
     }
 
     // 2. Restore Students & Hafalan
-    onProgress?.('Memulihkan data Siswa...', 55);
+    onProgress?.('Memulihkan data Siswa...', 50);
     let studentCount = 0;
     let hafalanCount = 0;
 
@@ -914,11 +1059,23 @@ export async function restoreDatabaseBackup(
         }
       }
 
-      const progressPct = 55 + Math.round(((i + 1) / Math.max(1, totalStudentsToRestore)) * 35);
+      const progressPct = 50 + Math.round(((i + 1) / Math.max(1, totalStudentsToRestore)) * 30);
       onProgress?.(`Memulihkan data siswa (${i + 1}/${totalStudentsToRestore})...`, progressPct);
     }
 
-    // 3. Restore Activity Logs if any
+    // 3. Restore Documentations if any
+    if (Array.isArray(payload.documentations)) {
+      onProgress?.('Memulihkan data Dokumentasi Hafalan...', 85);
+      for (const d of payload.documentations) {
+        const docId = d.id || `doc-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`;
+        await setDoc(doc(db, DOCUMENTATIONS_COL, docId), {
+          ...d,
+          id: docId,
+        });
+      }
+    }
+
+    // 4. Restore Activity Logs if any
     if (Array.isArray(payload.activityLogs)) {
       for (const log of payload.activityLogs.slice(0, 100)) {
         const logId = log.id || `log-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`;
@@ -949,4 +1106,5 @@ export async function restoreDatabaseBackup(
     throw error;
   }
 }
+
 

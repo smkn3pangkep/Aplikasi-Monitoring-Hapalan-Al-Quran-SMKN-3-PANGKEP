@@ -6,6 +6,7 @@ import {
   BookMarked,
   KeyRound,
   Database,
+  FolderOpen,
   LogOut,
   Shield,
   UserCheck,
@@ -13,7 +14,7 @@ import {
   School,
 } from 'lucide-react';
 
-export type NavTab = 'dashboard' | 'bimbingan' | 'siswa' | 'kontrol_sandi' | 'backup_restore';
+export type NavTab = 'dashboard' | 'baca_quran' | 'bimbingan' | 'siswa' | 'dokumentasi' | 'kontrol_sandi' | 'backup_restore';
 
 interface NavbarProps {
   activeTab: NavTab;
@@ -68,6 +69,19 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onSelectTab }) => {
 
             <button
               type="button"
+              onClick={() => onSelectTab('baca_quran')}
+              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs lg:text-sm font-semibold transition ${
+                activeTab === 'baca_quran'
+                  ? 'bg-emerald-600 text-white shadow-sm'
+                  : 'text-slate-300 hover:text-white hover:bg-slate-700/50'
+              }`}
+            >
+              <BookOpen className="w-4 h-4" />
+              <span>Baca Quran</span>
+            </button>
+
+            <button
+              type="button"
               onClick={() => onSelectTab('bimbingan')}
               className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs lg:text-sm font-semibold transition ${
                 activeTab === 'bimbingan'
@@ -90,6 +104,19 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onSelectTab }) => {
             >
               <BookMarked className="w-4 h-4" />
               <span>Daftar Siswa & Hafalan</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => onSelectTab('dokumentasi')}
+              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs lg:text-sm font-semibold transition ${
+                activeTab === 'dokumentasi'
+                  ? 'bg-emerald-600 text-white shadow-sm'
+                  : 'text-slate-300 hover:text-white hover:bg-slate-700/50'
+              }`}
+            >
+              <FolderOpen className="w-4 h-4" />
+              <span>Dokumentasi Hafalan</span>
             </button>
 
             {isSuperAdmin && (
@@ -174,6 +201,15 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onSelectTab }) => {
           </button>
           <button
             type="button"
+            onClick={() => onSelectTab('baca_quran')}
+            className={`px-3 py-1.5 rounded-lg whitespace-nowrap transition ${
+              activeTab === 'baca_quran' ? 'bg-emerald-600 text-white' : 'text-slate-400'
+            }`}
+          >
+            Baca Quran
+          </button>
+          <button
+            type="button"
             onClick={() => onSelectTab('bimbingan')}
             className={`px-3 py-1.5 rounded-lg whitespace-nowrap transition ${
               activeTab === 'bimbingan' ? 'bg-emerald-600 text-white' : 'text-slate-400'
@@ -189,6 +225,15 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onSelectTab }) => {
             }`}
           >
             Daftar Siswa
+          </button>
+          <button
+            type="button"
+            onClick={() => onSelectTab('dokumentasi')}
+            className={`px-3 py-1.5 rounded-lg whitespace-nowrap transition ${
+              activeTab === 'dokumentasi' ? 'bg-emerald-600 text-white' : 'text-slate-400'
+            }`}
+          >
+            Dokumentasi
           </button>
           {isSuperAdmin && (
             <>

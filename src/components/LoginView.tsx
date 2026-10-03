@@ -174,13 +174,13 @@ export const LoginView: React.FC = () => {
                   required
                   value={adminEmail}
                   onChange={(e) => setAdminEmail(e.target.value)}
-                  placeholder="admin atau admin@smkn3pangkep.sch.id"
+                  placeholder="admin@smkn3pangkep.sch.id atau adminhapalan"
                   className="w-full bg-slate-800/90 border border-slate-700 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 text-white rounded-xl px-4 py-3 pl-11 text-sm outline-none transition placeholder:text-slate-500"
                 />
                 <Shield className="w-4 h-4 text-amber-400 absolute left-4 top-3.5" />
               </div>
               <p className="text-[11px] text-slate-400 mt-1">
-                Akses penuh konfigurasi, kontrol akun guru, dan rekapan sekolah.
+                Akses Super Admin atau Admin Staf (adminhapalan@smkn3pangkep.sch.id).
               </p>
             </div>
 

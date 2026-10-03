@@ -55,7 +55,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const session: UserSession = {
           uid: 'superadmin-1',
           email: 'admin@smkn3pangkep.sch.id',
-          name: 'Admin SMKN 3 Pangkep',
+          name: 'Super Admin SMKN 3 Pangkep',
           role: 'superadmin',
         };
         setUser(session);
@@ -64,7 +64,47 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return { success: true };
       }
 
+      // Check Admin Staf credentials (adminhapalan@smkn3pangkep.sch.id / password: bismilllah or bismillah)
+      const isStaffUsernameMatch =
+        cleanEmail === 'adminhapalan@smkn3pangkep.sch.id' ||
+        cleanEmail === 'adminhapalan';
+      const isStaffPasswordMatch =
+        cleanPass === 'bismilllah' || cleanPass === 'bismillah';
+
+      if (isStaffUsernameMatch && isStaffPasswordMatch) {
+        const session: UserSession = {
+          uid: 'adminstaf-1',
+          email: 'adminhapalan@smkn3pangkep.sch.id',
+          name: 'Admin Staf Hafalan SMKN 3 Pangkep',
+          role: 'admin_staf',
+        };
+        setUser(session);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
+        setLoading(false);
+        return { success: true };
+      }
+
       // Check Firestore admins collection if custom admin was added
+      const staffDoc = await getDoc(doc(db, 'admins', 'adminhapalan'));
+      if (staffDoc.exists()) {
+        const data = staffDoc.data();
+        if (
+          (data.email?.toLowerCase() === cleanEmail || cleanEmail === 'adminhapalan') &&
+          (data.password === cleanPass || cleanPass === 'bismilllah' || cleanPass === 'bismillah')
+        ) {
+          const session: UserSession = {
+            uid: data.uid || 'adminstaf-1',
+            email: data.email || 'adminhapalan@smkn3pangkep.sch.id',
+            name: data.name || 'Admin Staf Hafalan SMKN 3 Pangkep',
+            role: 'admin_staf',
+          };
+          setUser(session);
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
+          setLoading(false);
+          return { success: true };
+        }
+      }
+
       const adminDoc = await getDoc(doc(db, 'admins', 'superadmin'));
       if (adminDoc.exists()) {
         const data = adminDoc.data();
@@ -83,7 +123,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       setLoading(false);
-      return { success: false, message: 'Email atau kata sandi Super Admin salah.' };
+      return { success: false, message: 'Email atau kata sandi Admin/Staf salah.' };
     } catch (error: any) {
       setLoading(false);
       return { success: false, message: error.message || 'Terjadi kesalahan saat verifikasi admin.' };

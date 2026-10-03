@@ -43,10 +43,11 @@ export const DataBimbinganView: React.FC<DataBimbinganViewProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const isSuperAdmin = user?.role === 'superadmin';
+  const canManageAll = user?.role === 'superadmin' || user?.role === 'admin_staf';
 
   // Filters
   const [selectedTeacherFilter, setSelectedTeacherFilter] = useState<string>(
-    isSuperAdmin ? 'all' : user?.nip || ''
+    canManageAll ? 'all' : user?.nip || ''
   );
   const [selectedClassFilter, setSelectedClassFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -69,7 +70,7 @@ export const DataBimbinganView: React.FC<DataBimbinganViewProps> = ({
   const [formNisn, setFormNisn] = useState('');
   const [formClass, setFormClass] = useState('');
   const [formTeacherNip, setFormTeacherNip] = useState(
-    isSuperAdmin ? (teachers[0]?.nip || '') : (user?.nip || '')
+    canManageAll ? (teachers[0]?.nip || '') : (user?.nip || '')
   );
   const [formParentPhone, setFormParentPhone] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -84,7 +85,7 @@ export const DataBimbinganView: React.FC<DataBimbinganViewProps> = ({
 
   // Data segregation:
   // If Guru Wali, strict filter to their own NIP.
-  const baseStudents = isSuperAdmin
+  const baseStudents = canManageAll
     ? students
     : students.filter((s) => s.teacherNip === user?.nip);
 
@@ -108,7 +109,7 @@ export const DataBimbinganView: React.FC<DataBimbinganViewProps> = ({
     setFormName('');
     setFormNisn('');
     setFormClass('');
-    setFormTeacherNip(isSuperAdmin ? (teachers[0]?.nip || '') : (user?.nip || ''));
+    setFormTeacherNip(canManageAll ? (teachers[0]?.nip || '') : (user?.nip || ''));
     setFormParentPhone('');
     setFormError(null);
     setShowAddModal(true);
@@ -252,7 +253,7 @@ export const DataBimbinganView: React.FC<DataBimbinganViewProps> = ({
             Daftar Siswa Bimbingan Tahfidz
           </h2>
           <p className="text-xs text-slate-500 mt-0.5">
-            {isSuperAdmin
+            {canManageAll
               ? 'Kelola data seluruh siswa dan pemetaan Guru Wali di SMKN 3 Pangkep.'
               : `Menampilkan khusus daftar anak bimbingan ${user?.name} (NIP: ${user?.nip}).`}
           </p>
@@ -277,14 +278,14 @@ export const DataBimbinganView: React.FC<DataBimbinganViewProps> = ({
             type="button"
             onClick={() =>
               exportStudentsToExcel(displayedStudents, {
-                teacherName: !isSuperAdmin
+                teacherName: !canManageAll
                   ? user?.name
                   : selectedTeacherFilter === 'all'
                   ? 'Semua Guru'
                   : teachers.find((t) => t.nip === selectedTeacherFilter)?.name,
                 className: selectedClassFilter,
                 filterLabel: `Guru: ${
-                  !isSuperAdmin
+                  !canManageAll
                     ? user?.name
                     : selectedTeacherFilter === 'all'
                     ? 'Semua Guru'
@@ -352,8 +353,8 @@ export const DataBimbinganView: React.FC<DataBimbinganViewProps> = ({
       {/* Filter and Search Bar */}
       <div className="bg-white rounded-2xl border border-slate-200/80 p-4 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-3">
-          {/* Guru Wali Filter (Available for Super Admin) */}
-          {isSuperAdmin && (
+          {/* Guru Wali Filter (Available for Super Admin & Admin Staf) */}
+          {canManageAll && (
             <div className="flex items-center gap-2">
               <span className="text-xs font-semibold text-slate-500">Guru Wali:</span>
               <select
@@ -421,14 +422,14 @@ export const DataBimbinganView: React.FC<DataBimbinganViewProps> = ({
               type="button"
               onClick={() =>
                 exportStudentsToExcel(displayedStudents, {
-                  teacherName: !isSuperAdmin
+                  teacherName: !canManageAll
                     ? user?.name
                     : selectedTeacherFilter === 'all'
                     ? 'Semua Guru'
                     : teachers.find((t) => t.nip === selectedTeacherFilter)?.name,
                   className: selectedClassFilter,
                   filterLabel: `Guru: ${
-                    !isSuperAdmin
+                    !canManageAll
                       ? user?.name
                       : selectedTeacherFilter === 'all'
                       ? 'Semua Guru'
@@ -666,7 +667,7 @@ export const DataBimbinganView: React.FC<DataBimbinganViewProps> = ({
                 <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
                   Guru Wali Pembimbing
                 </label>
-                {isSuperAdmin ? (
+                {canManageAll ? (
                   <select
                     value={formTeacherNip}
                     onChange={(e) => setFormTeacherNip(e.target.value)}

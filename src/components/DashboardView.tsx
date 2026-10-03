@@ -18,11 +18,12 @@ import { useAuth } from '../context/AuthContext';
 import { BarChart } from './BarChart';
 import { subscribeActivityLogs } from '../services/dataService';
 import { TOTAL_TARGET_SURAHS } from '../data/juz30Data';
+import { NavTab } from './Navbar';
 
 interface DashboardViewProps {
   teachers: Teacher[];
   students: Student[];
-  onNavigateTab: (tab: 'bimbingan' | 'siswa' | 'kontrol_sandi') => void;
+  onNavigateTab: (tab: NavTab) => void;
   onSelectStudent: (student: Student) => void;
 }
 
@@ -45,9 +46,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   }, []);
 
   const isSuperAdmin = user?.role === 'superadmin';
+  const isAdminStaff = user?.role === 'admin_staf';
+  const canViewAll = isSuperAdmin || isAdminStaff;
 
   // Specific students for this view
-  const displayStudents = isSuperAdmin
+  const displayStudents = canViewAll
     ? students
     : students.filter((s) => s.teacherNip === user?.nip);
 
@@ -86,18 +89,26 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             Ahlan Wa Sahlan, {user?.name}
           </h1>
           <p className="text-emerald-100/90 text-sm sm:text-base mt-2 leading-relaxed">
-            {isSuperAdmin
-              ? 'Selamat datang di Panel Super Admin Monitoring Hafalan Al-Qur\'an Juz 30. Anda dapat memantau seluruh aktivitas guru wali, mengelola data bimbingan, dan kontrol akun.'
+            {canViewAll
+              ? 'Selamat datang di Panel Monitoring Hafalan Al-Qur\'an Juz 30. Anda dapat memantau seluruh aktivitas guru wali, mengelola data bimbingan, progres hafalan siswa, dan dokumentasi bukti pelaksanaan.'
               : `Selamat datang di ruang bimbingan tahfidz Anda. Memantau bimbingan khusus kelas ${user?.classes || 'Anda'} dengan sinkronisasi data langsung.`}
           </p>
 
           <div className="mt-5 flex flex-wrap items-center gap-3">
             <button
               type="button"
-              onClick={() => onNavigateTab('siswa')}
+              onClick={() => onNavigateTab('baca_quran')}
               className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-xl text-xs sm:text-sm transition flex items-center gap-1.5 shadow-md shadow-emerald-950/40 cursor-pointer"
             >
-              <span>Buka Kartu & Daftar Siswa</span>
+              <BookOpen className="w-4 h-4" />
+              <span>Ayo Baca Qur'an</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => onNavigateTab('siswa')}
+              className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white font-semibold rounded-xl text-xs sm:text-sm transition border border-white/20 cursor-pointer flex items-center gap-1.5"
+            >
+              <span>Daftar Siswa & Hafalan</span>
               <ChevronRight className="w-4 h-4" />
             </button>
             <button
@@ -105,7 +116,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               onClick={() => onNavigateTab('bimbingan')}
               className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white font-semibold rounded-xl text-xs sm:text-sm transition border border-white/20 cursor-pointer"
             >
-              <span>Input & Import Data Siswa</span>
+              <span>Input Data Bimbingan</span>
             </button>
           </div>
         </div>
