@@ -145,8 +145,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const querySnap = await getDocs(q);
 
       if (querySnap.empty) {
+        // Fallback check for newly registered TU staff
+        const staffFallback = [
+          { nip: '197412162025212005', name: 'SRI WATI PUTRI', classes: 'Tata Usaha (TU)' },
+          { nip: '197508282025212006', name: 'DAHRIYANTI', classes: 'Tata Usaha (TU)' },
+          { nip: '198605012025212025', name: 'ANUGRAH TRIANA WAHAB', classes: 'Tata Usaha (TU)' },
+        ].find((s) => s.nip === cleanNip);
+
+        if (staffFallback && cleanPass === 'bismillah') {
+          const staffDocId = `pegawai-${cleanNip}`;
+          const session: UserSession = {
+            uid: staffDocId,
+            email: `${cleanNip}@smkn3pangkep.sch.id`,
+            name: staffFallback.name,
+            role: 'pegawai_tu',
+            nip: cleanNip,
+            classes: staffFallback.classes,
+          };
+          setUser(session);
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
+          setLoading(false);
+          return { success: true };
+        }
+
         setLoading(false);
-        return { success: false, message: `Guru dengan NIP "${cleanNip}" tidak ditemukan. Silakan hubungi Administrator.` };
+        return { success: false, message: `Guru / Pegawai dengan NIP "${cleanNip}" tidak ditemukan. Silakan hubungi Administrator.` };
       }
 
       let matchedUser: UserSession | null = null;
@@ -155,16 +178,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       querySnap.forEach((doc) => {
         const data = doc.data();
-        if (data.password === cleanPass) {
+        if (data.password === cleanPass || (!data.password && cleanPass === 'bismillah')) {
           passwordMismatch = false;
           if (data.isActive === false) {
             isInactive = true;
           } else {
+            const isTU = data.classes?.includes('Tata Usaha') || data.role === 'pegawai_tu';
             matchedUser = {
               uid: doc.id,
               email: data.email || `${cleanNip}@smkn3pangkep.sch.id`,
               name: data.name,
-              role: 'guru_wali',
+              role: isTU ? 'pegawai_tu' : 'guru_wali',
               nip: data.nip,
               classes: data.classes,
             };

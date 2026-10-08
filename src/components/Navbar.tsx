@@ -12,9 +12,19 @@ import {
   UserCheck,
   BookOpen,
   School,
+  Award,
 } from 'lucide-react';
 
-export type NavTab = 'dashboard' | 'baca_quran' | 'bimbingan' | 'siswa' | 'dokumentasi' | 'kontrol_sandi' | 'backup_restore';
+export type NavTab =
+  | 'dashboard'
+  | 'baca_quran'
+  | 'bimbingan'
+  | 'siswa'
+  | 'dokumentasi'
+  | 'hafalan_saya'
+  | 'monitoring_guru'
+  | 'kontrol_sandi'
+  | 'backup_restore';
 
 interface NavbarProps {
   activeTab: NavTab;
@@ -25,6 +35,10 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onSelectTab }) => {
   const { user, logout } = useAuth();
 
   const isSuperAdmin = user?.role === 'superadmin';
+  const isAdminStaff = user?.role === 'admin_staf';
+  const isPegawaiTu = user?.role === 'pegawai_tu' || user?.classes?.includes('Tata Usaha');
+  const isGuruWali = user?.role === 'guru_wali' && !isPegawaiTu;
+  const canViewAll = isSuperAdmin || isAdminStaff;
 
   return (
     <header className="bg-slate-900 border-b border-emerald-900/40 sticky top-0 z-40 shadow-lg">
@@ -47,7 +61,11 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onSelectTab }) => {
                 </span>
               </div>
               <p className="text-xs text-emerald-200/70 font-medium hidden sm:block">
-                Sistem Monitoring Hafalan Al-Qur'an Guru Wali
+                {isPegawaiTu
+                  ? "Sistem Monitoring Hafalan Al-Qur'an Pegawai TU"
+                  : canViewAll
+                  ? "Sistem Monitoring Hafalan Al-Qur'an Terpadu"
+                  : "Sistem Monitoring Hafalan Al-Qur'an Guru Wali"}
               </p>
             </div>
           </div>
@@ -80,31 +98,36 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onSelectTab }) => {
               <span>Baca Quran</span>
             </button>
 
-            <button
-              type="button"
-              onClick={() => onSelectTab('bimbingan')}
-              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs lg:text-sm font-semibold transition ${
-                activeTab === 'bimbingan'
-                  ? 'bg-emerald-600 text-white shadow-sm'
-                  : 'text-slate-300 hover:text-white hover:bg-slate-700/50'
-              }`}
-            >
-              <Users className="w-4 h-4" />
-              <span>Data Bimbingan</span>
-            </button>
+            {/* Menu Khusus Guru Wali & Admin: Data Bimbingan & Daftar Siswa (Pegawai TU tidak memiliki anak bimbingan) */}
+            {!isPegawaiTu && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => onSelectTab('bimbingan')}
+                  className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs lg:text-sm font-semibold transition ${
+                    activeTab === 'bimbingan'
+                      ? 'bg-emerald-600 text-white shadow-sm'
+                      : 'text-slate-300 hover:text-white hover:bg-slate-700/50'
+                  }`}
+                >
+                  <Users className="w-4 h-4" />
+                  <span>Data Bimbingan</span>
+                </button>
 
-            <button
-              type="button"
-              onClick={() => onSelectTab('siswa')}
-              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs lg:text-sm font-semibold transition ${
-                activeTab === 'siswa'
-                  ? 'bg-emerald-600 text-white shadow-sm'
-                  : 'text-slate-300 hover:text-white hover:bg-slate-700/50'
-              }`}
-            >
-              <BookMarked className="w-4 h-4" />
-              <span>Daftar Siswa & Hafalan</span>
-            </button>
+                <button
+                  type="button"
+                  onClick={() => onSelectTab('siswa')}
+                  className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs lg:text-sm font-semibold transition ${
+                    activeTab === 'siswa'
+                      ? 'bg-emerald-600 text-white shadow-sm'
+                      : 'text-slate-300 hover:text-white hover:bg-slate-700/50'
+                  }`}
+                >
+                  <BookMarked className="w-4 h-4" />
+                  <span>Daftar Siswa & Hafalan</span>
+                </button>
+              </>
+            )}
 
             <button
               type="button"
@@ -118,6 +141,38 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onSelectTab }) => {
               <FolderOpen className="w-4 h-4" />
               <span>Dokumentasi Hafalan</span>
             </button>
+
+            {/* Menu Khusus: Hafalan Saya (untuk Guru Wali dan Pegawai TU) */}
+            {(isGuruWali || isPegawaiTu) && (
+              <button
+                type="button"
+                onClick={() => onSelectTab('hafalan_saya')}
+                className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs lg:text-sm font-semibold transition ${
+                  activeTab === 'hafalan_saya'
+                    ? 'bg-emerald-600 text-white shadow-sm'
+                    : 'text-slate-300 hover:text-white hover:bg-slate-700/50'
+                }`}
+              >
+                <Award className="w-4 h-4 text-emerald-400" />
+                <span>Hafalan Saya</span>
+              </button>
+            )}
+
+            {/* Menu Khusus: Data Hafalan Guru (untuk Super Admin & Admin Staf) */}
+            {canViewAll && (
+              <button
+                type="button"
+                onClick={() => onSelectTab('monitoring_guru')}
+                className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs lg:text-sm font-semibold transition ${
+                  activeTab === 'monitoring_guru'
+                    ? 'bg-emerald-600 text-white shadow-sm'
+                    : 'text-slate-300 hover:text-white hover:bg-slate-700/50'
+                }`}
+              >
+                <Award className="w-4 h-4 text-emerald-400" />
+                <span>Data Hafalan Guru</span>
+              </button>
+            )}
 
             {isSuperAdmin && (
               <>
@@ -161,6 +216,16 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onSelectTab }) => {
                   <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40">
                     <Shield className="w-2.5 h-2.5" />
                     Super Admin
+                  </span>
+                ) : isAdminStaff ? (
+                  <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/40">
+                    <Shield className="w-2.5 h-2.5" />
+                    Admin Staf
+                  </span>
+                ) : user?.classes?.includes('Tata Usaha') ? (
+                  <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-teal-500/20 text-teal-300 border border-teal-500/40">
+                    <UserCheck className="w-2.5 h-2.5" />
+                    Pegawai TU
                   </span>
                 ) : (
                   <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
@@ -208,24 +273,28 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onSelectTab }) => {
           >
             Baca Quran
           </button>
-          <button
-            type="button"
-            onClick={() => onSelectTab('bimbingan')}
-            className={`px-3 py-1.5 rounded-lg whitespace-nowrap transition ${
-              activeTab === 'bimbingan' ? 'bg-emerald-600 text-white' : 'text-slate-400'
-            }`}
-          >
-            Bimbingan
-          </button>
-          <button
-            type="button"
-            onClick={() => onSelectTab('siswa')}
-            className={`px-3 py-1.5 rounded-lg whitespace-nowrap transition ${
-              activeTab === 'siswa' ? 'bg-emerald-600 text-white' : 'text-slate-400'
-            }`}
-          >
-            Daftar Siswa
-          </button>
+          {!isPegawaiTu && (
+            <>
+              <button
+                type="button"
+                onClick={() => onSelectTab('bimbingan')}
+                className={`px-3 py-1.5 rounded-lg whitespace-nowrap transition ${
+                  activeTab === 'bimbingan' ? 'bg-emerald-600 text-white' : 'text-slate-400'
+                }`}
+              >
+                Bimbingan
+              </button>
+              <button
+                type="button"
+                onClick={() => onSelectTab('siswa')}
+                className={`px-3 py-1.5 rounded-lg whitespace-nowrap transition ${
+                  activeTab === 'siswa' ? 'bg-emerald-600 text-white' : 'text-slate-400'
+                }`}
+              >
+                Daftar Siswa
+              </button>
+            </>
+          )}
           <button
             type="button"
             onClick={() => onSelectTab('dokumentasi')}
@@ -235,6 +304,28 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onSelectTab }) => {
           >
             Dokumentasi
           </button>
+          {(isGuruWali || isPegawaiTu) && (
+            <button
+              type="button"
+              onClick={() => onSelectTab('hafalan_saya')}
+              className={`px-3 py-1.5 rounded-lg whitespace-nowrap transition ${
+                activeTab === 'hafalan_saya' ? 'bg-emerald-600 text-white' : 'text-slate-400'
+              }`}
+            >
+              Hafalan Saya
+            </button>
+          )}
+          {canViewAll && (
+            <button
+              type="button"
+              onClick={() => onSelectTab('monitoring_guru')}
+              className={`px-3 py-1.5 rounded-lg whitespace-nowrap transition ${
+                activeTab === 'monitoring_guru' ? 'bg-emerald-600 text-white' : 'text-slate-400'
+              }`}
+            >
+              Hafalan Guru
+            </button>
+          )}
           {isSuperAdmin && (
             <>
               <button

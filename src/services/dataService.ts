@@ -8,12 +8,13 @@ import {
   deleteDoc,
   onSnapshot,
   query,
+  where,
   orderBy,
   limit,
 } from 'firebase/firestore';
 import * as XLSX from 'xlsx';
 import { db, handleFirestoreError, OperationType } from '../firebase';
-import { Teacher, Student, MemorizationRecord, ActivityLog, MemorizationStatus, DatabaseBackupPayload, DocumentationRecord } from '../types';
+import { Teacher, Student, MemorizationRecord, TeacherMemorizationRecord, ActivityLog, MemorizationStatus, DatabaseBackupPayload, DocumentationRecord } from '../types';
 import { INITIAL_TEACHERS, INITIAL_STUDENTS } from '../data/seedData';
 import { JUZ_30_SURAHS } from '../data/juz30Data';
 
@@ -53,6 +54,89 @@ export async function initializeDatabase() {
         createdAt: new Date().toISOString(),
       });
     }
+
+    // 3. Clean up any previous incorrect TU records and ensure the 3 Pegawai Tata Usaha exist
+    const oldStaffNips = ['199612122023212032', '199005252023211010', '198207132009021004'];
+    for (const oldNip of oldStaffNips) {
+      const qOld = query(collection(db, TEACHERS_COL), where('nip', '==', oldNip));
+      const snapOld = await getDocs(qOld);
+      await Promise.all(
+        snapOld.docs.map(async (d) => {
+          try {
+            await deleteDoc(d.ref);
+          } catch (e) {
+            console.error('Cleaned old TU record:', e);
+          }
+        })
+      );
+    }
+
+    const TU_STAFF: Omit<Teacher, 'id' | 'createdAt'>[] = [
+      {
+        nip: '197412162025212005',
+        name: 'SRI WATI PUTRI',
+        email: '197412162025212005@smkn3pangkep.sch.id',
+        phone: '',
+        classes: 'Tata Usaha (TU)',
+        role: 'pegawai_tu',
+        password: 'bismillah',
+        isActive: true,
+        totalMemorized: 0,
+        totalInProcess: 0,
+        totalRemaining: JUZ_30_SURAHS.length,
+      },
+      {
+        nip: '197508282025212006',
+        name: 'DAHRIYANTI',
+        email: '197508282025212006@smkn3pangkep.sch.id',
+        phone: '',
+        classes: 'Tata Usaha (TU)',
+        role: 'pegawai_tu',
+        password: 'bismillah',
+        isActive: true,
+        totalMemorized: 0,
+        totalInProcess: 0,
+        totalRemaining: JUZ_30_SURAHS.length,
+      },
+      {
+        nip: '198605012025212025',
+        name: 'ANUGRAH TRIANA WAHAB',
+        email: '198605012025212025@smkn3pangkep.sch.id',
+        phone: '',
+        classes: 'Tata Usaha (TU)',
+        role: 'pegawai_tu',
+        password: 'bismillah',
+        isActive: true,
+        totalMemorized: 0,
+        totalInProcess: 0,
+        totalRemaining: JUZ_30_SURAHS.length,
+      },
+    ];
+
+    for (const staff of TU_STAFF) {
+      const qStaff = query(collection(db, TEACHERS_COL), where('nip', '==', staff.nip));
+      const snapStaff = await getDocs(qStaff);
+      if (snapStaff.empty) {
+        const staffDocId = `pegawai-${staff.nip}`;
+        await setDoc(doc(db, TEACHERS_COL, staffDocId), {
+          ...staff,
+          id: staffDocId,
+          createdAt: new Date().toISOString(),
+        });
+      } else {
+        await Promise.all(
+          snapStaff.docs.map(async (d) => {
+            await updateDoc(d.ref, {
+              name: staff.name,
+              classes: 'Tata Usaha (TU)',
+              role: 'pegawai_tu',
+              password: d.data().password || 'bismillah',
+              isActive: true,
+            });
+          })
+        );
+      }
+    }
   } catch (error) {
     console.error('Error seeding initial data:', error);
   }
@@ -66,7 +150,15 @@ export function subscribeTeachers(callback: (teachers: Teacher[]) => void) {
       collection(db, TEACHERS_COL),
       (snap) => {
         const teachers: Teacher[] = [];
-        snap.forEach((doc) => teachers.push({ ...(doc.data() as Teacher), id: doc.id }));
+        snap.forEach((doc) => {
+          const item = { ...(doc.data() as Teacher), id: doc.id };
+          if (item.totalMemorized === undefined) {
+            item.totalMemorized = 0;
+            item.totalInProcess = 0;
+            item.totalRemaining = JUZ_30_SURAHS.length;
+          }
+          teachers.push(item);
+        });
         callback(teachers);
       },
       (error) => {
@@ -452,6 +544,119 @@ export async function updateHafalanRecord(
     });
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, path);
+  }
+}
+
+// ----------------- TEACHER HAFALAN SERVICE -----------------
+
+export function subscribeTeacherMemorization(
+  teacherId: string,
+  callback: (records: TeacherMemorizationRecord[]) => void
+) {
+  const path = `${TEACHERS_COL}/${teacherId}/hafalan`;
+  try {
+    return onSnapshot(
+      collection(db, TEACHERS_COL, teacherId, 'hafalan'),
+      (snap) => {
+        const recordsMap = new Map<number, TeacherMemorizationRecord>();
+        snap.forEach((d) => {
+          const rec = d.data() as TeacherMemorizationRecord;
+          recordsMap.set(rec.surahNumber, rec);
+        });
+
+        // Ensure all 38 surahs of Al-Fatihah + Juz 30 are always present and ordered
+        const fullList: TeacherMemorizationRecord[] = JUZ_30_SURAHS.map((surah) => {
+          if (recordsMap.has(surah.number)) {
+            return recordsMap.get(surah.number)!;
+          }
+          return {
+            teacherId,
+            teacherNip: '',
+            teacherName: '',
+            surahNumber: surah.number,
+            surahName: surah.name,
+            arabicName: surah.arabicName,
+            totalAyat: surah.totalAyat,
+            ayatRange: `1 - ${surah.totalAyat}`,
+            status: 'belum_hapal',
+            updatedAt: new Date().toISOString(),
+          };
+        });
+
+        callback(fullList);
+      },
+      (error) => {
+        handleFirestoreError(error, OperationType.GET, path);
+      }
+    );
+  } catch (error) {
+    handleFirestoreError(error, OperationType.GET, path);
+  }
+}
+
+export async function updateTeacherHafalanRecord(
+  teacherId: string,
+  surahNumber: number,
+  recordData: Partial<TeacherMemorizationRecord>,
+  actorInfo: { name: string; nip: string; role: string; teacherName: string; teacherNip?: string }
+): Promise<void> {
+  const path = `${TEACHERS_COL}/${teacherId}/hafalan/${surahNumber}`;
+  try {
+    const surahMeta = JUZ_30_SURAHS.find((s) => s.number === surahNumber);
+    const docRef = doc(db, TEACHERS_COL, teacherId, 'hafalan', surahNumber.toString());
+
+    const cleanData = cleanUndefined({
+      ...recordData,
+      teacherId,
+      teacherNip: actorInfo.teacherNip || '',
+      teacherName: actorInfo.teacherName,
+      surahNumber,
+      surahName: surahMeta?.name || '',
+      arabicName: surahMeta?.arabicName || '',
+      totalAyat: surahMeta?.totalAyat || 0,
+      updatedAt: new Date().toISOString(),
+    });
+
+    await setDoc(docRef, cleanData, { merge: true });
+
+    // Recalculate teacher aggregates
+    const hafalanSnap = await getDocs(collection(db, TEACHERS_COL, teacherId, 'hafalan'));
+    let memorized = 0;
+    let inProcess = 0;
+    hafalanSnap.forEach((d) => {
+      const data = d.data() as TeacherMemorizationRecord;
+      if (data.status === 'sudah_hapal') memorized++;
+      else if (data.status === 'proses_hapal') inProcess++;
+    });
+
+    const remaining = Math.max(0, JUZ_30_SURAHS.length - memorized - inProcess);
+
+    await updateDoc(doc(db, TEACHERS_COL, teacherId), {
+      totalMemorized: memorized,
+      totalInProcess: inProcess,
+      totalRemaining: remaining,
+      lastHafalanUpdated: new Date().toISOString(),
+    });
+
+    // Log this activity
+    const statusLabel =
+      recordData.status === 'sudah_hapal'
+        ? 'Sudah Hapal (Tuntas)'
+        : recordData.status === 'proses_hapal'
+        ? 'Proses Hapal'
+        : 'Belum Hapal';
+
+    await logActivity({
+      actorNip: actorInfo.nip,
+      actorName: actorInfo.name,
+      actorRole: actorInfo.role,
+      action: 'Setor Hafalan Guru',
+      surahName: surahMeta?.name,
+      description: `Guru ${actorInfo.teacherName} memperbarui hafalan surah ${surahMeta?.name} menjadi [${statusLabel}]${recordData.listenerName ? ` (Disimak: ${recordData.listenerName})` : ''}`,
+    });
+  } catch (error) {
+    handleFirestoreError(error, OperationType.WRITE, path);
+    throw error;
   }
 }
 

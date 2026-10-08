@@ -62,7 +62,7 @@ export const LoginView: React.FC = () => {
 
       {/* Main Login Card */}
       <div className="w-full max-w-md bg-slate-900/90 border border-emerald-500/30 rounded-3xl p-6 md:p-8 backdrop-blur-xl shadow-2xl relative z-10">
-        {/* Tab switch between Guru Wali and Admin */}
+        {/* Tab switch between Guru/Pegawai TU and Admin */}
         <div className="grid grid-cols-2 gap-2 bg-slate-800/80 p-1.5 rounded-2xl mb-6 border border-slate-700/60">
           <button
             type="button"
@@ -77,7 +77,7 @@ export const LoginView: React.FC = () => {
             }`}
           >
             <User className="w-4 h-4" />
-            Guru Wali
+            Guru & Pegawai TU
           </button>
           <button
             type="button"
@@ -104,12 +104,12 @@ export const LoginView: React.FC = () => {
           </div>
         )}
 
-        {/* Form Guru Wali */}
+        {/* Form Guru & Pegawai TU */}
         {activeTab === 'guru' && (
           <form onSubmit={handleGuruSubmit} className="space-y-4">
             <div>
               <label className="block text-xs font-semibold text-emerald-300 uppercase tracking-wider mb-1.5">
-                NIP Guru Wali
+                NIP Guru / Pegawai TU
               </label>
               <div className="relative">
                 <input
@@ -117,13 +117,13 @@ export const LoginView: React.FC = () => {
                   required
                   value={guruNip}
                   onChange={(e) => setGuruNip(e.target.value)}
-                  placeholder="Contoh: 198205142008011005"
+                  placeholder="Contoh: 197412162025212005"
                   className="w-full bg-slate-800/90 border border-slate-700 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 text-white rounded-xl px-4 py-3 pl-11 text-sm outline-none transition placeholder:text-slate-500"
                 />
                 <User className="w-4 h-4 text-emerald-400 absolute left-4 top-3.5" />
               </div>
               <p className="text-[11px] text-slate-400 mt-1">
-                Masuk menggunakan Nomor Induk Pegawai (NIP) yang terdaftar.
+                Masuk menggunakan NIP Guru Wali atau Pegawai Tata Usaha yang terdaftar (kata sandi default: <span className="font-mono text-emerald-400">bismillah</span>).
               </p>
             </div>
 
@@ -153,7 +153,7 @@ export const LoginView: React.FC = () => {
                 <span>Memverifikasi Akun...</span>
               ) : (
                 <>
-                  <span>Masuk sebagai Guru Wali</span>
+                  <span>Masuk sebagai Guru / Pegawai TU</span>
                   <ArrowRight className="w-4 h-4" />
                 </>
               )}

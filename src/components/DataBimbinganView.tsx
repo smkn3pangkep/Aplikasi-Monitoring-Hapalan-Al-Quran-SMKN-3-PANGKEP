@@ -45,6 +45,16 @@ export const DataBimbinganView: React.FC<DataBimbinganViewProps> = ({
   const isSuperAdmin = user?.role === 'superadmin';
   const canManageAll = user?.role === 'superadmin' || user?.role === 'admin_staf';
 
+  // Only actual Guru Wali who have student bimbingan
+  const guruWaliList = teachers.filter(
+    (t) =>
+      t.role !== 'pegawai_tu' &&
+      !t.classes?.includes('Tata Usaha') &&
+      t.nip !== '197412162025212005' &&
+      t.nip !== '197508282025212006' &&
+      t.nip !== '198605012025212025'
+  );
+
   // Filters
   const [selectedTeacherFilter, setSelectedTeacherFilter] = useState<string>(
     canManageAll ? 'all' : user?.nip || ''
@@ -70,7 +80,7 @@ export const DataBimbinganView: React.FC<DataBimbinganViewProps> = ({
   const [formNisn, setFormNisn] = useState('');
   const [formClass, setFormClass] = useState('');
   const [formTeacherNip, setFormTeacherNip] = useState(
-    canManageAll ? (teachers[0]?.nip || '') : (user?.nip || '')
+    canManageAll ? (guruWaliList[0]?.nip || '') : (user?.nip || '')
   );
   const [formParentPhone, setFormParentPhone] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -109,7 +119,7 @@ export const DataBimbinganView: React.FC<DataBimbinganViewProps> = ({
     setFormName('');
     setFormNisn('');
     setFormClass('');
-    setFormTeacherNip(canManageAll ? (teachers[0]?.nip || '') : (user?.nip || ''));
+    setFormTeacherNip(canManageAll ? (guruWaliList[0]?.nip || '') : (user?.nip || ''));
     setFormParentPhone('');
     setFormError(null);
     setShowAddModal(true);
@@ -362,8 +372,8 @@ export const DataBimbinganView: React.FC<DataBimbinganViewProps> = ({
                 onChange={(e) => setSelectedTeacherFilter(e.target.value)}
                 className="bg-slate-50 border border-slate-300 rounded-xl px-3 py-1.5 text-xs font-medium focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none"
               >
-                <option value="all">Semua Guru ({teachers.length})</option>
-                {teachers.map((t) => (
+                <option value="all">Semua Guru ({guruWaliList.length})</option>
+                {guruWaliList.map((t) => (
                   <option key={t.id} value={t.nip}>
                     {t.name} (NIP: {t.nip})
                   </option>
@@ -673,7 +683,7 @@ export const DataBimbinganView: React.FC<DataBimbinganViewProps> = ({
                     onChange={(e) => setFormTeacherNip(e.target.value)}
                     className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none"
                   >
-                    {teachers.map((t) => (
+                    {guruWaliList.map((t) => (
                       <option key={t.id} value={t.nip}>
                         {t.name} (NIP: {t.nip})
                       </option>

@@ -1,4 +1,4 @@
-export type UserRole = 'superadmin' | 'admin_staf' | 'guru_wali';
+export type UserRole = 'superadmin' | 'admin_staf' | 'guru_wali' | 'pegawai_tu';
 
 export interface UserSession {
   uid: string;
@@ -17,9 +17,33 @@ export interface Teacher {
   password?: string;
   phone: string;
   classes: string;
+  role?: 'guru_wali' | 'pegawai_tu';
   isActive: boolean;
+  totalMemorized?: number; // Jumlah surah yang sudah hapal (dari 38: Al-Fatihah & Juz 30)
+  totalInProcess?: number; // Jumlah surah dalam proses
+  totalRemaining?: number; // Jumlah surah belum hapal
+  lastHafalanUpdated?: string;
   createdAt: string;
   updatedAt?: string;
+}
+
+export interface TeacherMemorizationRecord {
+  id?: string;
+  teacherId: string;
+  teacherNip: string;
+  teacherName: string;
+  surahNumber: number;
+  surahName: string;
+  arabicName: string;
+  totalAyat: number;
+  ayatRange: string;
+  status: MemorizationStatus;
+  completedDate?: string;
+  grade?: 'Mumtaz' | 'Jayyid Jiddan' | 'Jayyid' | 'Maqbul' | '';
+  notes?: string; // Catatan tajwid / tahsin / kelancaran
+  listenerName?: string; // Guru/Ustadz yang ditunjuk menyimak
+  listenerNip?: string;
+  updatedAt: string;
 }
 
 export interface Student {

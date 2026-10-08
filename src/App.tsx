@@ -10,6 +10,8 @@ import { BackupRestoreView } from './components/BackupRestoreView';
 import { BacaQuranView } from './components/BacaQuranView';
 import { DokumentasiHafalanView } from './components/DokumentasiHafalanView';
 import { DetailHafalanModal } from './components/DetailHafalanModal';
+import { HafalanGuruSayaView } from './components/HafalanGuruSayaView';
+import { MonitoringHafalanGuruView } from './components/MonitoringHafalanGuruView';
 import { Teacher, Student, DocumentationRecord } from './types';
 import { subscribeTeachers, subscribeStudents, subscribeDocumentations } from './services/dataService';
 import { testConnection } from './firebase';
@@ -76,15 +78,18 @@ const MainApp: React.FC = () => {
   const [dbConnected, setDbConnected] = useState<boolean>(true);
 
   // Set default active tab based on role upon login:
+  // Pegawai TU focuses directly on their personal hafalan ('hafalan_saya')
   // Guru Wali focuses directly on inputting student hafalan in Data Bimbingan ('bimbingan')
   // Admin starts at Dashboard ('dashboard')
   useEffect(() => {
-    if (user?.role === 'guru_wali') {
+    if (user?.role === 'pegawai_tu' || user?.classes?.includes('Tata Usaha')) {
+      setActiveTab('hafalan_saya');
+    } else if (user?.role === 'guru_wali') {
       setActiveTab('bimbingan');
-    } else if (user?.role === 'superadmin') {
+    } else if (user?.role === 'superadmin' || user?.role === 'admin_staf') {
       setActiveTab('dashboard');
     }
-  }, [user?.role, user?.uid]);
+  }, [user?.role, user?.classes, user?.uid]);
 
   // Test Firestore connection on app mount per skill guideline
   useEffect(() => {
@@ -140,11 +145,25 @@ const MainApp: React.FC = () => {
     return <LoginView />;
   }
 
-  // Fallback for non-superadmin trying to access admin-only tabs
-  const currentTab =
-    !isSuperAdmin && (activeTab === 'kontrol_sandi' || activeTab === 'backup_restore')
-      ? 'bimbingan'
-      : activeTab;
+  // Fallback checks for role-specific tabs
+  const isPegawaiTu = user?.role === 'pegawai_tu' || user?.classes?.includes('Tata Usaha');
+  const isGuruWali = user?.role === 'guru_wali' && !isPegawaiTu;
+  const canViewAll = isSuperAdmin || user?.role === 'admin_staf';
+
+  let currentTab = activeTab;
+  // Pegawai TU does not have student bimbingan
+  if (isPegawaiTu && (activeTab === 'bimbingan' || activeTab === 'siswa')) {
+    currentTab = 'hafalan_saya';
+  }
+  if (!isSuperAdmin && (activeTab === 'kontrol_sandi' || activeTab === 'backup_restore')) {
+    currentTab = isPegawaiTu ? 'hafalan_saya' : 'bimbingan';
+  }
+  if (!canViewAll && activeTab === 'monitoring_guru') {
+    currentTab = 'hafalan_saya';
+  }
+  if (canViewAll && activeTab === 'hafalan_saya') {
+    currentTab = 'monitoring_guru';
+  }
 
   // 2. Logged In Dashboard & Navigation
   return (
@@ -187,6 +206,16 @@ const MainApp: React.FC = () => {
             students={students}
             documentations={documentations}
           />
+        )}
+
+        {/* Tab Khusus Hafalan Saya (Guru Wali) */}
+        {currentTab === 'hafalan_saya' && (
+          <HafalanGuruSayaView teachers={teachers} />
+        )}
+
+        {/* Tab Khusus Data Hafalan Guru (Super Admin & Admin Staf) */}
+        {currentTab === 'monitoring_guru' && canViewAll && (
+          <MonitoringHafalanGuruView teachers={teachers} />
         )}
 
         {currentTab === 'kontrol_sandi' && isSuperAdmin && (
