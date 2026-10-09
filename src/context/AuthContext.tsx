@@ -216,13 +216,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         matchedDocId = emilDocId;
       }
 
-      // 4. Fallback for the 3 Pegawai TU
+      // 4. Fallback for the 4 Pegawai TU
       if (!matchedDoc) {
         const staffFallback = [
           { nip: '197412162025212005', name: 'SRI WATI PUTRI', classes: 'Tata Usaha (TU)' },
           { nip: '197508282025212006', name: 'DAHRIYANTI', classes: 'Tata Usaha (TU)' },
           { nip: '198605012025212025', name: 'ANUGRAH TRIANA WAHAB', classes: 'Tata Usaha (TU)' },
-        ].find((s) => s.nip === cleanNip || s.nip === strippedNip);
+          { nip: '198009042008011007', name: 'RAHMATULLAH, S.Pd, M.AP', classes: 'Tata Usaha (TU)' },
+        ].find(
+          (s) =>
+            s.nip === cleanNip ||
+            s.nip === strippedNip ||
+            (cleanNip.length > 5 && s.name.toLowerCase().includes(cleanNip.toLowerCase()))
+        );
 
         if (staffFallback) {
           const staffDocId = `pegawai-${staffFallback.nip}`;

@@ -52,7 +52,8 @@ export const DataBimbinganView: React.FC<DataBimbinganViewProps> = ({
       !t.classes?.includes('Tata Usaha') &&
       t.nip !== '197412162025212005' &&
       t.nip !== '197508282025212006' &&
-      t.nip !== '198605012025212025'
+      t.nip !== '198605012025212025' &&
+      t.nip !== '198009042008011007'
   );
 
   // Filters

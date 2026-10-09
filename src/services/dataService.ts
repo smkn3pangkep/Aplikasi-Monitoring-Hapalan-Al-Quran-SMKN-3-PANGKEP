@@ -90,7 +90,7 @@ export async function initializeDatabase() {
       );
     }
 
-    // 4. Ensure the 3 Pegawai Tata Usaha exist and are active
+    // 4. Ensure the 4 Pegawai Tata Usaha exist and are active
     const TU_STAFF: Omit<Teacher, 'id' | 'createdAt'>[] = [
       {
         nip: '197412162025212005',
@@ -122,6 +122,19 @@ export async function initializeDatabase() {
         nip: '198605012025212025',
         name: 'ANUGRAH TRIANA WAHAB',
         email: '198605012025212025@smkn3pangkep.sch.id',
+        phone: '',
+        classes: 'Tata Usaha (TU)',
+        role: 'pegawai_tu',
+        password: 'bismillah',
+        isActive: true,
+        totalMemorized: 0,
+        totalInProcess: 0,
+        totalRemaining: JUZ_30_SURAHS.length,
+      },
+      {
+        nip: '198009042008011007',
+        name: 'RAHMATULLAH, S.Pd, M.AP',
+        email: '198009042008011007@smkn3pangkep.sch.id',
         phone: '',
         classes: 'Tata Usaha (TU)',
         role: 'pegawai_tu',
