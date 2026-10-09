@@ -117,7 +117,7 @@ export const LoginView: React.FC = () => {
                   required
                   value={guruNip}
                   onChange={(e) => setGuruNip(e.target.value)}
-                  placeholder="Contoh: 197412162025212005"
+                  placeholder="Contoh: 199005252023211010"
                   className="w-full bg-slate-800/90 border border-slate-700 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 text-white rounded-xl px-4 py-3 pl-11 text-sm outline-none transition placeholder:text-slate-500"
                 />
                 <User className="w-4 h-4 text-emerald-400 absolute left-4 top-3.5" />

@@ -55,22 +55,42 @@ export async function initializeDatabase() {
       });
     }
 
-    // 3. Clean up any previous incorrect TU records and ensure the 3 Pegawai Tata Usaha exist
-    const oldStaffNips = ['199612122023212032', '199005252023211010', '198207132009021004'];
-    for (const oldNip of oldStaffNips) {
-      const qOld = query(collection(db, TEACHERS_COL), where('nip', '==', oldNip));
-      const snapOld = await getDocs(qOld);
+    // 3. Ensure EMIL AIDIN, S.Pd (NIP: 199005252023211010) exists and is active as Guru Wali
+    const emilNip = '199005252023211010';
+    const qEmil = query(collection(db, TEACHERS_COL), where('nip', '==', emilNip));
+    const snapEmil = await getDocs(qEmil);
+    if (snapEmil.empty) {
+      const emilDocId = `teacher-${emilNip}`;
+      await setDoc(doc(db, TEACHERS_COL, emilDocId), {
+        id: emilDocId,
+        nip: emilNip,
+        name: 'EMIL AIDIN, S.Pd',
+        email: `${emilNip}@smkn3pangkep.sch.id`,
+        phone: '-',
+        classes: 'Guru Wali',
+        role: 'guru_wali',
+        password: 'bismillah',
+        isActive: true,
+        createdAt: new Date().toISOString(),
+        totalMemorized: 0,
+        totalInProcess: 0,
+        totalRemaining: JUZ_30_SURAHS.length,
+      });
+    } else {
       await Promise.all(
-        snapOld.docs.map(async (d) => {
-          try {
-            await deleteDoc(d.ref);
-          } catch (e) {
-            console.error('Cleaned old TU record:', e);
-          }
+        snapEmil.docs.map(async (d) => {
+          const data = d.data();
+          await updateDoc(d.ref, {
+            name: data.name || 'EMIL AIDIN, S.Pd',
+            password: data.password || 'bismillah',
+            isActive: true,
+            role: data.role || 'guru_wali',
+          });
         })
       );
     }
 
+    // 4. Ensure the 3 Pegawai Tata Usaha exist and are active
     const TU_STAFF: Omit<Teacher, 'id' | 'createdAt'>[] = [
       {
         nip: '197412162025212005',
@@ -806,42 +826,52 @@ export async function processTeacherExcelUpload(
         const existingByNip = new Map<string, { id: string; docData: Teacher }>();
         existingSnap.forEach((d) => {
           const t = d.data() as Teacher;
-          if (t.nip) existingByNip.set(t.nip.trim(), { id: d.id, docData: t });
+          if (t.nip) {
+            existingByNip.set(t.nip.trim(), { id: d.id, docData: t });
+            existingByNip.set(t.nip.replace(/[\s\.\-]/g, ''), { id: d.id, docData: t });
+          }
         });
 
         for (let i = 0; i < rawJson.length; i++) {
           const row = rawJson[i];
           const rowNum = i + 2;
 
-          // Support exact required headers or common variations
-          const rawName =
-            row['Nama Guru Wali'] ??
-            row['Nama Guru'] ??
-            row['nama guru wali'] ??
-            row['Nama'] ??
-            row['Guru'];
-          const rawNip =
-            row['NIP (Username)'] ??
-            row['NIP'] ??
-            row['Username'] ??
-            row['nip'] ??
-            row['username'];
-          const rawClasses =
-            row['Kelas Bimbingan'] ??
-            row['Kelas'] ??
-            row['kelas bimbingan'] ??
-            row['Rombel'];
-          const rawPassword =
-            row['Kata Sandi Saat Ini'] ??
-            row['Kata Sandi'] ??
-            row['Password'] ??
-            row['kata sandi saat ini'] ??
-            row['password'];
+          // Helper to extract value with case-insensitive / normalized key search
+          const getVal = (candidates: string[]): any => {
+            for (const cand of candidates) {
+              if (row[cand] !== undefined && row[cand] !== null && String(row[cand]).trim() !== '') {
+                return row[cand];
+              }
+            }
+            const rowKeys = Object.keys(row);
+            for (const rk of rowKeys) {
+              const normRk = rk.toLowerCase().replace(/[^a-z0-9]/g, '');
+              for (const cand of candidates) {
+                const normCand = cand.toLowerCase().replace(/[^a-z0-9]/g, '');
+                if (normRk === normCand || normRk.includes(normCand)) {
+                  if (row[rk] !== undefined && row[rk] !== null && String(row[rk]).trim() !== '') {
+                    return row[rk];
+                  }
+                }
+              }
+            }
+            return '';
+          };
+
+          const rawName = getVal(['nama guru wali', 'nama guru', 'nama lengkap', 'nama', 'guru']);
+          const rawNip = getVal(['nip (username)', 'nip/nuptk', 'nip', 'username', 'nuptk', 'no nip']);
+          const rawClasses = getVal(['kelas bimbingan', 'kelas', 'rombel', 'ruang', 'jabatan']);
+          const rawPassword = getVal(['kata sandi saat ini', 'kata sandi', 'password', 'sandi']);
 
           const name = String(rawName || '').trim();
-          const nip = String(rawNip || '').trim();
+          let nip = String(rawNip || '').trim();
+          // If NIP is formatted with spaces/dots/dashes (e.g. 19900525 202321 1 010), strip them
+          if (/^[\d\s\.\-]+$/.test(nip) && nip.replace(/[\s\.\-]/g, '').length >= 8) {
+            nip = nip.replace(/[\s\.\-]/g, '');
+          }
+
           const classes = String(rawClasses || '').trim();
-          // User requirement: "semua akun guru paswordnya bismillah"
+          // User requirement: default password is 'bismillah'
           const password = String(rawPassword || '').trim() || 'bismillah';
 
           if (!name || !nip) {
@@ -849,13 +879,18 @@ export async function processTeacherExcelUpload(
             continue;
           }
 
-          const existing = existingByNip.get(nip);
+          const existing = existingByNip.get(nip) || existingByNip.get(nip.replace(/[\s\.\-]/g, ''));
+          const isTU = classes.toLowerCase().includes('tata usaha') || classes.toLowerCase() === 'tu';
+          const role = isTU ? 'pegawai_tu' : 'guru_wali';
+
           if (existing) {
             // Update existing teacher record
             await updateDoc(doc(db, TEACHERS_COL, existing.id), {
               name,
               classes: classes || existing.docData.classes || '',
+              role: role,
               password: password || 'bismillah',
+              isActive: true,
               updatedAt: new Date().toISOString(),
             });
             updatedCount++;
@@ -866,15 +901,20 @@ export async function processTeacherExcelUpload(
               id: newId,
               nip,
               name,
-              classes: classes || '-',
+              classes: classes || (isTU ? 'Tata Usaha (TU)' : 'Guru Wali'),
+              role: role,
               password: password || 'bismillah',
               email: `${nip}@smkn3pangkep.sch.id`,
               phone: '-',
               isActive: true,
+              totalMemorized: 0,
+              totalInProcess: 0,
+              totalRemaining: JUZ_30_SURAHS.length,
               createdAt: new Date().toISOString(),
             };
             await setDoc(doc(db, TEACHERS_COL, newId), newTeacher);
             existingByNip.set(nip, { id: newId, docData: newTeacher });
+            existingByNip.set(nip.replace(/[\s\.\-]/g, ''), { id: newId, docData: newTeacher });
             addedCount++;
           }
         }
