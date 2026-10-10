@@ -174,6 +174,20 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </button>
         </div>
 
+        {dashboardScope === 'siswa' && !isPegawaiTu && (
+          <div className="flex items-center gap-2 self-end sm:self-auto">
+            <button
+              type="button"
+              onClick={() => onNavigateTab('laporan_siswa')}
+              className="px-3.5 py-1.5 rounded-xl bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-xs"
+              title="Buka Menu Laporan Hasil Monitoring Hafalan Siswa (PDF)"
+            >
+              <Printer className="w-3.5 h-3.5" />
+              <span>Cetak Laporan PDF Siswa</span>
+            </button>
+          </div>
+        )}
+
         {dashboardScope === 'guru' && canViewAll && (
           <div className="flex items-center gap-2 self-end sm:self-auto">
             <button

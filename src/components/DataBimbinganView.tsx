@@ -14,11 +14,13 @@ import {
   FileCheck,
   UserCheck,
   X,
+  Printer,
 } from 'lucide-react';
 import { Teacher, Student } from '../types';
 import { useAuth } from '../context/AuthContext';
 import { TOTAL_TARGET_SURAHS } from '../data/juz30Data';
 import { exportStudentsToExcel } from '../utils/reportExport';
+import { exportStudentHafalanToPDF } from '../utils/studentReportPDF';
 import {
   addStudent,
   deleteStudent,
@@ -309,6 +311,33 @@ export const DataBimbinganView: React.FC<DataBimbinganViewProps> = ({
           >
             <FileSpreadsheet className="w-4 h-4" />
             <span>Unduh Laporan Excel</span>
+          </button>
+
+          {/* Unduh Laporan Resmi PDF (.pdf) */}
+          <button
+            type="button"
+            onClick={() => {
+              const selectedT = teachers.find((t) => t.nip === selectedTeacherFilter);
+              exportStudentHafalanToPDF(displayedStudents, {
+                isAllData: canManageAll && selectedTeacherFilter === 'all',
+                guruWaliName: !canManageAll
+                  ? user?.name
+                  : selectedTeacherFilter === 'all'
+                  ? 'Semua Guru'
+                  : selectedT?.name,
+                guruWaliNip: !canManageAll
+                  ? user?.nip
+                  : selectedTeacherFilter === 'all'
+                  ? undefined
+                  : selectedT?.nip,
+                selectedClass: selectedClassFilter,
+              });
+            }}
+            className="px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition flex items-center gap-1.5 shadow-md shadow-slate-900/20 cursor-pointer border border-slate-700"
+            title="Cetak Laporan Hasil Monitoring Hafalan Siswa (PDF Resmi)"
+          >
+            <Printer className="w-4 h-4 text-emerald-400" />
+            <span>Cetak Laporan PDF</span>
           </button>
 
           <button

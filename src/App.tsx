@@ -12,6 +12,7 @@ import { DokumentasiHafalanView } from './components/DokumentasiHafalanView';
 import { DetailHafalanModal } from './components/DetailHafalanModal';
 import { HafalanGuruSayaView } from './components/HafalanGuruSayaView';
 import { MonitoringHafalanGuruView } from './components/MonitoringHafalanGuruView';
+import { LaporanMonitoringSiswaView } from './components/LaporanMonitoringSiswaView';
 import { Teacher, Student, DocumentationRecord } from './types';
 import { subscribeTeachers, subscribeStudents, subscribeDocumentations } from './services/dataService';
 import { testConnection } from './firebase';
@@ -152,7 +153,7 @@ const MainApp: React.FC = () => {
 
   let currentTab = activeTab;
   // Pegawai TU does not have student bimbingan
-  if (isPegawaiTu && (activeTab === 'bimbingan' || activeTab === 'siswa')) {
+  if (isPegawaiTu && (activeTab === 'bimbingan' || activeTab === 'siswa' || activeTab === 'laporan_siswa')) {
     currentTab = 'hafalan_saya';
   }
   if (!isSuperAdmin && (activeTab === 'kontrol_sandi' || activeTab === 'backup_restore')) {
@@ -197,6 +198,13 @@ const MainApp: React.FC = () => {
             students={students}
             teachers={teachers}
             onSelectStudent={(s) => setSelectedStudent(s)}
+          />
+        )}
+
+        {currentTab === 'laporan_siswa' && (
+          <LaporanMonitoringSiswaView
+            students={students}
+            teachers={teachers}
           />
         )}
 

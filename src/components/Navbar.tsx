@@ -13,6 +13,7 @@ import {
   BookOpen,
   School,
   Award,
+  FileText,
 } from 'lucide-react';
 
 export type NavTab =
@@ -20,6 +21,7 @@ export type NavTab =
   | 'baca_quran'
   | 'bimbingan'
   | 'siswa'
+  | 'laporan_siswa'
   | 'dokumentasi'
   | 'hafalan_saya'
   | 'monitoring_guru'
@@ -125,6 +127,19 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onSelectTab }) => {
                 >
                   <BookMarked className="w-4 h-4" />
                   <span>Daftar Siswa & Hafalan</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => onSelectTab('laporan_siswa')}
+                  className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs lg:text-sm font-semibold transition ${
+                    activeTab === 'laporan_siswa'
+                      ? 'bg-emerald-600 text-white shadow-sm'
+                      : 'text-slate-300 hover:text-white hover:bg-slate-700/50'
+                  }`}
+                >
+                  <FileText className="w-4 h-4 text-emerald-400" />
+                  <span>Laporan Siswa (PDF)</span>
                 </button>
               </>
             )}
@@ -292,6 +307,15 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onSelectTab }) => {
                 }`}
               >
                 Daftar Siswa
+              </button>
+              <button
+                type="button"
+                onClick={() => onSelectTab('laporan_siswa')}
+                className={`px-3 py-1.5 rounded-lg whitespace-nowrap transition ${
+                  activeTab === 'laporan_siswa' ? 'bg-emerald-600 text-white' : 'text-slate-400'
+                }`}
+              >
+                Laporan Siswa (PDF)
               </button>
             </>
           )}
