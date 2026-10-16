@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
-import { Navbar, NavTab } from './components/Navbar';
+import { Sidebar, NavTab } from './components/Sidebar';
 import { LoginView } from './components/LoginView';
 import { DashboardView } from './components/DashboardView';
 import { DataBimbinganView } from './components/DataBimbinganView';
@@ -166,74 +166,96 @@ const MainApp: React.FC = () => {
     currentTab = 'monitoring_guru';
   }
 
-  // 2. Logged In Dashboard & Navigation
+  // 2. Logged In Dashboard & Navigation (Side Menu di sebelah kiri)
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col">
-      {/* Top Navbar */}
-      <Navbar activeTab={currentTab} onSelectTab={setActiveTab} />
+    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col lg:flex-row">
+      {/* Side Menu (Sidebar di sebelah kiri mulai dari dashboard sampai tombol keluar) */}
+      <Sidebar activeTab={currentTab} onSelectTab={setActiveTab} />
 
-      {/* Main App Content Container */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
-        {currentTab === 'dashboard' && (
-          <DashboardView
-            teachers={teachers}
-            students={students}
-            onNavigateTab={setActiveTab}
-            onSelectStudent={(s) => setSelectedStudent(s)}
-          />
-        )}
+      {/* Main Content & Footer Area */}
+      <div className="flex-1 flex flex-col min-w-0 min-h-screen overflow-x-hidden">
+        {/* Main App Content Container */}
+        <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+          {currentTab === 'dashboard' && (
+            <DashboardView
+              teachers={teachers}
+              students={students}
+              onNavigateTab={setActiveTab}
+              onSelectStudent={(s) => setSelectedStudent(s)}
+            />
+          )}
 
-        {currentTab === 'baca_quran' && <BacaQuranView />}
+          {currentTab === 'baca_quran' && <BacaQuranView />}
 
-        {currentTab === 'bimbingan' && (
-          <DataBimbinganView
-            teachers={teachers}
-            students={students}
-            onSelectStudent={(s) => setSelectedStudent(s)}
-          />
-        )}
+          {currentTab === 'bimbingan' && (
+            <DataBimbinganView
+              teachers={teachers}
+              students={students}
+              onSelectStudent={(s) => setSelectedStudent(s)}
+            />
+          )}
 
-        {currentTab === 'siswa' && (
-          <DaftarSiswaView
-            students={students}
-            teachers={teachers}
-            onSelectStudent={(s) => setSelectedStudent(s)}
-          />
-        )}
+          {currentTab === 'siswa' && (
+            <DaftarSiswaView
+              students={students}
+              teachers={teachers}
+              onSelectStudent={(s) => setSelectedStudent(s)}
+            />
+          )}
 
-        {currentTab === 'laporan_siswa' && (
-          <LaporanMonitoringSiswaView
-            students={students}
-            teachers={teachers}
-          />
-        )}
+          {currentTab === 'laporan_siswa' && (
+            <LaporanMonitoringSiswaView
+              students={students}
+              teachers={teachers}
+            />
+          )}
 
-        {currentTab === 'dokumentasi' && (
-          <DokumentasiHafalanView
-            teachers={teachers}
-            students={students}
-            documentations={documentations}
-          />
-        )}
+          {currentTab === 'dokumentasi' && (
+            <DokumentasiHafalanView
+              teachers={teachers}
+              students={students}
+              documentations={documentations}
+            />
+          )}
 
-        {/* Tab Khusus Hafalan Saya (Guru Wali) */}
-        {currentTab === 'hafalan_saya' && (
-          <HafalanGuruSayaView teachers={teachers} />
-        )}
+          {/* Tab Khusus Hafalan Saya (Guru Wali) */}
+          {currentTab === 'hafalan_saya' && (
+            <HafalanGuruSayaView teachers={teachers} />
+          )}
 
-        {/* Tab Khusus Data Hafalan Guru (Super Admin & Admin Staf) */}
-        {currentTab === 'monitoring_guru' && canViewAll && (
-          <MonitoringHafalanGuruView teachers={teachers} />
-        )}
+          {/* Tab Khusus Data Hafalan Guru (Super Admin & Admin Staf) */}
+          {currentTab === 'monitoring_guru' && canViewAll && (
+            <MonitoringHafalanGuruView teachers={teachers} />
+          )}
 
-        {currentTab === 'kontrol_sandi' && isSuperAdmin && (
-          <AkunGuruView teachers={teachers} />
-        )}
+          {currentTab === 'kontrol_sandi' && isSuperAdmin && (
+            <AkunGuruView teachers={teachers} />
+          )}
 
-        {currentTab === 'backup_restore' && isSuperAdmin && (
-          <BackupRestoreView teachers={teachers} students={students} />
-        )}
-      </main>
+          {currentTab === 'backup_restore' && isSuperAdmin && (
+            <BackupRestoreView teachers={teachers} students={students} />
+          )}
+        </main>
+
+        {/* Footer */}
+        <footer className="bg-white border-t border-slate-200 mt-auto py-5 text-center text-xs text-slate-500">
+          <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <School className="w-4 h-4 text-emerald-600" />
+              <span className="font-semibold text-slate-700">
+                SMK Negeri 3 Pangkep (Pangkajene dan Kepulauan, Sulawesi Selatan)
+              </span>
+            </div>
+            <div className="flex items-center gap-3 text-[11px]">
+              <span className="flex items-center gap-1 text-emerald-600 font-medium">
+                <CheckCircle2 className="w-3.5 h-3.5" /> Firebase Firestore Real-Time Active
+              </span>
+              <span>&bull;</span>
+              <span>Program Tahfidz Juz 30</span>
+            </div>
+          </div>
+        </footer>
+      </div>
 
       {/* Student 37-Surahs Juz 30 Modal */}
       {selectedStudent && (
@@ -242,25 +264,6 @@ const MainApp: React.FC = () => {
           onClose={() => setSelectedStudent(null)}
         />
       )}
-
-      {/* Footer */}
-      <footer className="bg-white border-t border-slate-200 mt-auto py-5 text-center text-xs text-slate-500">
-        <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <School className="w-4 h-4 text-emerald-600" />
-            <span className="font-semibold text-slate-700">
-              SMK Negeri 3 Pangkep (Pangkajene dan Kepulauan, Sulawesi Selatan)
-            </span>
-          </div>
-          <div className="flex items-center gap-3 text-[11px]">
-            <span className="flex items-center gap-1 text-emerald-600 font-medium">
-              <CheckCircle2 className="w-3.5 h-3.5" /> Firebase Firestore Real-Time Active
-            </span>
-            <span>&bull;</span>
-            <span>Program Tahfidz Juz 30</span>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 };
