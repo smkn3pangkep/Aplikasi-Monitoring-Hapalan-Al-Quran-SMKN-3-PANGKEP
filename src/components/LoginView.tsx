@@ -1,12 +1,27 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Shield, BookOpen, User, Key, CheckCircle2, AlertCircle, School, ArrowRight } from 'lucide-react';
+import {
+  Shield,
+  BookOpen,
+  User,
+  Key,
+  CheckCircle2,
+  AlertCircle,
+  School,
+  ArrowRight,
+  GraduationCap,
+  Sparkles,
+  Info,
+} from 'lucide-react';
+import { PWAInstallButton } from './PWAInstallButton';
 
 export const LoginView: React.FC = () => {
-  const { loginAsAdmin, loginAsGuru, loading } = useAuth();
-  const [activeTab, setActiveTab] = useState<'guru' | 'admin'>('guru');
+  const { loginAsAdmin, loginAsGuru, loginAsStudent, loading } = useAuth();
+  const [activeTab, setActiveTab] = useState<'siswa' | 'guru' | 'admin'>('siswa');
 
   // Form states
+  const [siswaQuery, setSiswaQuery] = useState('');
+
   const [adminEmail, setAdminEmail] = useState('');
   const [adminPassword, setAdminPassword] = useState('');
 
@@ -15,6 +30,21 @@ export const LoginView: React.FC = () => {
 
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSiswaSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMessage(null);
+    if (!siswaQuery.trim()) {
+      setErrorMessage('Silakan masukkan NISN atau Nama Siswa Anda.');
+      return;
+    }
+    setIsSubmitting(true);
+    const result = await loginAsStudent(siswaQuery.trim());
+    setIsSubmitting(false);
+    if (!result.success) {
+      setErrorMessage(result.message || 'Login siswa gagal.');
+    }
+  };
 
   const handleAdminSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -46,14 +76,18 @@ export const LoginView: React.FC = () => {
 
       {/* Header & Logo */}
       <div className="text-center mb-6 relative z-10 max-w-xl">
-        <div className="inline-flex items-center justify-center p-3.5 bg-emerald-600/20 border border-emerald-500/30 rounded-2xl mb-4 backdrop-blur-md shadow-lg shadow-emerald-900/30">
-          <BookOpen className="w-9 h-9 text-emerald-400" />
+        <div className="inline-block p-1 bg-emerald-500/20 border border-emerald-400/40 rounded-3xl mb-3 backdrop-blur-md shadow-2xl shadow-emerald-950/80">
+          <img
+            src="/app-logo.png"
+            alt="Monitoring Hafalan Al Quran SMKN 3 Pangkep"
+            className="w-20 h-20 sm:w-24 sm:h-24 rounded-[22px] object-cover shadow-inner"
+          />
         </div>
         <div className="inline-block px-3 py-1 bg-emerald-500/20 border border-emerald-400/30 rounded-full text-emerald-300 text-xs font-semibold tracking-wider uppercase mb-2">
           Juz 'Amma • Juz 30
         </div>
         <h1 className="text-2xl md:text-3xl font-extrabold text-white tracking-tight">
-          Sistem Monitoring Hafalan Al-Qur'an
+          Monitoring Hafalan Al Quran
         </h1>
         <p className="text-emerald-200/80 font-medium text-sm md:text-base mt-1 flex items-center justify-center gap-1.5">
           <School className="w-4 h-4 text-emerald-400 inline" /> SMKN 3 PANGKEP (PANGKAJENE DAN KEPULAUAN)
@@ -62,37 +96,54 @@ export const LoginView: React.FC = () => {
 
       {/* Main Login Card */}
       <div className="w-full max-w-md bg-slate-900/90 border border-emerald-500/30 rounded-3xl p-6 md:p-8 backdrop-blur-xl shadow-2xl relative z-10">
-        {/* Tab switch between Guru/Pegawai TU and Admin */}
-        <div className="grid grid-cols-2 gap-2 bg-slate-800/80 p-1.5 rounded-2xl mb-6 border border-slate-700/60">
+        {/* 3 Tab Switch: Siswa | Guru & Pegawai TU | Admin */}
+        <div className="grid grid-cols-3 gap-1.5 bg-slate-800/80 p-1.5 rounded-2xl mb-6 border border-slate-700/60">
+          <button
+            type="button"
+            onClick={() => {
+              setActiveTab('siswa');
+              setErrorMessage(null);
+            }}
+            className={`flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-xl font-semibold text-xs transition-all duration-200 cursor-pointer ${
+              activeTab === 'siswa'
+                ? 'bg-blue-600 text-white shadow-md shadow-blue-900/40'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <GraduationCap className="w-4 h-4 shrink-0" />
+            <span>Siswa</span>
+          </button>
+
           <button
             type="button"
             onClick={() => {
               setActiveTab('guru');
               setErrorMessage(null);
             }}
-            className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl font-semibold text-xs md:text-sm transition-all duration-200 ${
+            className={`flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-xl font-semibold text-xs transition-all duration-200 cursor-pointer ${
               activeTab === 'guru'
                 ? 'bg-emerald-600 text-white shadow-md shadow-emerald-900/40'
                 : 'text-slate-400 hover:text-slate-200'
             }`}
           >
-            <User className="w-4 h-4" />
-            Guru & Pegawai TU
+            <User className="w-4 h-4 shrink-0" />
+            <span className="truncate">Guru & TU</span>
           </button>
+
           <button
             type="button"
             onClick={() => {
               setActiveTab('admin');
               setErrorMessage(null);
             }}
-            className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl font-semibold text-xs md:text-sm transition-all duration-200 ${
+            className={`flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-xl font-semibold text-xs transition-all duration-200 cursor-pointer ${
               activeTab === 'admin'
                 ? 'bg-amber-600 text-white shadow-md shadow-amber-900/40'
                 : 'text-slate-400 hover:text-slate-200'
             }`}
           >
-            <Shield className="w-4 h-4" />
-            Admin
+            <Shield className="w-4 h-4 shrink-0" />
+            <span>Admin</span>
           </button>
         </div>
 
@@ -104,7 +155,57 @@ export const LoginView: React.FC = () => {
           </div>
         )}
 
-        {/* Form Guru & Pegawai TU */}
+        {/* 1. Form Portal Siswa */}
+        {activeTab === 'siswa' && (
+          <form onSubmit={handleSiswaSubmit} className="space-y-4">
+            <div className="p-3 rounded-2xl bg-blue-950/40 border border-blue-500/30 text-blue-200 text-xs flex items-start gap-2.5">
+              <Info className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" />
+              <div>
+                <p className="font-bold text-blue-100">Portal Progres Hafalan Siswa</p>
+                <p className="text-blue-300/90 text-[11px] mt-0.5">
+                  Akses <strong>Hanya Lihat (Read-Only)</strong>. Masukkan NISN Anda untuk memantau capaian 38 Surah & membaca Al-Qur'an.
+                </p>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-blue-300 uppercase tracking-wider mb-1.5">
+                NISN (Nomor Induk Siswa Nasional)
+              </label>
+              <div className="relative">
+                <input
+                  type="text"
+                  required
+                  value={siswaQuery}
+                  onChange={(e) => setSiswaQuery(e.target.value)}
+                  placeholder="Masukkan NISN (contoh: 0061234567) atau Nama"
+                  className="w-full bg-slate-800/90 border border-slate-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 text-white rounded-xl px-4 py-3 pl-11 text-sm outline-none transition placeholder:text-slate-500"
+                />
+                <GraduationCap className="w-4 h-4 text-blue-400 absolute left-4 top-3.5" />
+              </div>
+              <p className="text-[11px] text-slate-400 mt-1">
+                Ketikkan NISN atau Nama lengkap Anda yang terdaftar pada sistem bimbingan tahfidz sekolah.
+              </p>
+            </div>
+
+            <button
+              type="submit"
+              disabled={isSubmitting || loading}
+              className="w-full mt-2 bg-blue-600 hover:bg-blue-500 active:scale-[0.99] text-white font-semibold py-3 px-4 rounded-xl text-sm transition-all shadow-lg shadow-blue-700/30 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
+            >
+              {isSubmitting ? (
+                <span>Mencari Data Siswa...</span>
+              ) : (
+                <>
+                  <span>Lihat Progres Hafalan Saya</span>
+                  <ArrowRight className="w-4 h-4" />
+                </>
+              )}
+            </button>
+          </form>
+        )}
+
+        {/* 2. Form Guru & Pegawai TU */}
         {activeTab === 'guru' && (
           <form onSubmit={handleGuruSubmit} className="space-y-4">
             <div>
@@ -161,7 +262,7 @@ export const LoginView: React.FC = () => {
           </form>
         )}
 
-        {/* Form Admin */}
+        {/* 3. Form Admin */}
         {activeTab === 'admin' && (
           <form onSubmit={handleAdminSubmit} className="space-y-4">
             <div>
@@ -221,6 +322,11 @@ export const LoginView: React.FC = () => {
             <CheckCircle2 className="w-3 h-3 text-emerald-500" /> Terhubung dengan Cloud Firebase Firestore Real-Time
           </p>
         </div>
+      </div>
+
+      {/* PWA Install Shortcut Banner */}
+      <div className="w-full max-w-md mt-4 relative z-10">
+        <PWAInstallButton variant="login" />
       </div>
 
       {/* Copyright */}

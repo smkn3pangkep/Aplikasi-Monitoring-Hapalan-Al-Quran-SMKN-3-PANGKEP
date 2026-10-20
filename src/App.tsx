@@ -13,10 +13,13 @@ import { DetailHafalanModal } from './components/DetailHafalanModal';
 import { HafalanGuruSayaView } from './components/HafalanGuruSayaView';
 import { MonitoringHafalanGuruView } from './components/MonitoringHafalanGuruView';
 import { LaporanMonitoringSiswaView } from './components/LaporanMonitoringSiswaView';
+import { SiswaHafalanView } from './components/SiswaHafalanView';
 import { Teacher, Student, DocumentationRecord } from './types';
 import { subscribeTeachers, subscribeStudents, subscribeDocumentations } from './services/dataService';
 import { testConnection } from './firebase';
 import { BookOpen, CheckCircle2, School } from 'lucide-react';
+import { PWAUpdateNotification } from './components/PWAUpdateNotification';
+import { OfflineIndicator } from './components/OfflineIndicator';
 
 interface ErrorBoundaryProps {
   children: React.ReactNode;
@@ -149,21 +152,28 @@ const MainApp: React.FC = () => {
   // Fallback checks for role-specific tabs
   const isPegawaiTu = user?.role === 'pegawai_tu' || user?.classes?.includes('Tata Usaha');
   const isGuruWali = user?.role === 'guru_wali' && !isPegawaiTu;
+  const isSiswa = user?.role === 'siswa';
   const canViewAll = isSuperAdmin || user?.role === 'admin_staf';
 
   let currentTab = activeTab;
-  // Pegawai TU does not have student bimbingan
-  if (isPegawaiTu && (activeTab === 'bimbingan' || activeTab === 'siswa' || activeTab === 'laporan_siswa')) {
-    currentTab = 'hafalan_saya';
-  }
-  if (!isSuperAdmin && (activeTab === 'kontrol_sandi' || activeTab === 'backup_restore')) {
-    currentTab = isPegawaiTu ? 'hafalan_saya' : 'bimbingan';
-  }
-  if (!canViewAll && activeTab === 'monitoring_guru') {
-    currentTab = 'hafalan_saya';
-  }
-  if (canViewAll && activeTab === 'hafalan_saya') {
-    currentTab = 'monitoring_guru';
+  if (isSiswa) {
+    if (activeTab !== 'baca_quran') {
+      currentTab = 'dashboard';
+    }
+  } else {
+    // Pegawai TU does not have student bimbingan
+    if (isPegawaiTu && (activeTab === 'bimbingan' || activeTab === 'siswa' || activeTab === 'laporan_siswa')) {
+      currentTab = 'hafalan_saya';
+    }
+    if (!isSuperAdmin && (activeTab === 'kontrol_sandi' || activeTab === 'backup_restore')) {
+      currentTab = isPegawaiTu ? 'hafalan_saya' : 'bimbingan';
+    }
+    if (!canViewAll && activeTab === 'monitoring_guru') {
+      currentTab = 'hafalan_saya';
+    }
+    if (canViewAll && activeTab === 'hafalan_saya') {
+      currentTab = 'monitoring_guru';
+    }
   }
 
   // 2. Logged In Dashboard & Navigation (Side Menu di sebelah kiri)
@@ -177,12 +187,16 @@ const MainApp: React.FC = () => {
         {/* Main App Content Container */}
         <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
           {currentTab === 'dashboard' && (
-            <DashboardView
-              teachers={teachers}
-              students={students}
-              onNavigateTab={setActiveTab}
-              onSelectStudent={(s) => setSelectedStudent(s)}
-            />
+            isSiswa ? (
+              <SiswaHafalanView onNavigateTab={setActiveTab} />
+            ) : (
+              <DashboardView
+                teachers={teachers}
+                students={students}
+                onNavigateTab={setActiveTab}
+                onSelectStudent={(s) => setSelectedStudent(s)}
+              />
+            )
           )}
 
           {currentTab === 'baca_quran' && <BacaQuranView />}
@@ -273,6 +287,8 @@ export default function App() {
     <ErrorBoundary>
       <AuthProvider>
         <MainApp />
+        <PWAUpdateNotification />
+        <OfflineIndicator />
       </AuthProvider>
     </ErrorBoundary>
   );

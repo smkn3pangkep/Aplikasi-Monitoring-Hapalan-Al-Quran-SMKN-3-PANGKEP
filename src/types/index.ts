@@ -1,4 +1,4 @@
-export type UserRole = 'superadmin' | 'admin_staf' | 'guru_wali' | 'pegawai_tu';
+export type UserRole = 'superadmin' | 'admin_staf' | 'guru_wali' | 'pegawai_tu' | 'siswa';
 
 export interface UserSession {
   uid: string;
@@ -7,6 +7,10 @@ export interface UserSession {
   role: UserRole;
   nip?: string;
   classes?: string;
+  studentId?: string;
+  nisn?: string;
+  teacherName?: string;
+  teacherNip?: string;
 }
 
 export interface Teacher {

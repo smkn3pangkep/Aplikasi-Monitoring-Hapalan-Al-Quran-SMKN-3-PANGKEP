@@ -1,14 +1,16 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { collection, query, where, getDocs, doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '../firebase';
-import { UserSession } from '../types';
+import { UserSession, Student } from '../types';
 import { initializeDatabase } from '../services/dataService';
+import { INITIAL_STUDENTS } from '../data/seedData';
 
 interface AuthContextType {
   user: UserSession | null;
   loading: boolean;
   loginAsAdmin: (email: string, pass: string) => Promise<{ success: boolean; message?: string }>;
   loginAsGuru: (nip: string, pass: string) => Promise<{ success: boolean; message?: string }>;
+  loginAsStudent: (nisnOrName: string) => Promise<{ success: boolean; message?: string; student?: Student }>;
   logout: () => void;
 }
 
@@ -311,13 +313,116 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const loginAsStudent = async (nisnOrName: string): Promise<{ success: boolean; message?: string; student?: Student }> => {
+    setLoading(true);
+    try {
+      const cleanQuery = nisnOrName.trim();
+      if (!cleanQuery) {
+        setLoading(false);
+        return { success: false, message: 'Silakan masukkan NISN atau Nama Siswa.' };
+      }
+
+      const cleanLower = cleanQuery.toLowerCase();
+      const cleanDigits = cleanQuery.replace(/[^0-9]/g, '');
+
+      let matchedStudent: Student | null = null;
+
+      // 1. Check in Firestore students collection
+      try {
+        const studentsSnap = await getDocs(collection(db, 'students'));
+        if (!studentsSnap.empty) {
+          for (const d of studentsSnap.docs) {
+            const data = d.data() as Student;
+            const sNisn = String(data.nisn || '').trim();
+            const sNisnDigits = sNisn.replace(/[^0-9]/g, '');
+            const sName = String(data.name || '').trim().toLowerCase();
+
+            // Check exact digits match for NISN
+            if (cleanDigits && sNisnDigits && cleanDigits === sNisnDigits) {
+              matchedStudent = { ...data, id: d.id };
+              break;
+            }
+            // Check string NISN
+            if (sNisn && sNisn.toLowerCase() === cleanLower) {
+              matchedStudent = { ...data, id: d.id };
+              break;
+            }
+            // Check exact name
+            if (sName === cleanLower) {
+              matchedStudent = { ...data, id: d.id };
+              break;
+            }
+          }
+
+          // If not matched, try matching substring name
+          if (!matchedStudent && cleanLower.length >= 3) {
+            for (const d of studentsSnap.docs) {
+              const data = d.data() as Student;
+              const sName = String(data.name || '').trim().toLowerCase();
+              if (sName.includes(cleanLower)) {
+                matchedStudent = { ...data, id: d.id };
+                break;
+              }
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('Firestore students read warning:', err);
+      }
+
+      // 2. Fallback to INITIAL_STUDENTS if not yet populated or offline
+      if (!matchedStudent) {
+        const found = INITIAL_STUDENTS.find((s) => {
+          const sNisnDigits = s.nisn.replace(/[^0-9]/g, '');
+          return (
+            (cleanDigits && sNisnDigits === cleanDigits) ||
+            s.nisn.toLowerCase() === cleanLower ||
+            s.name.toLowerCase() === cleanLower ||
+            (cleanLower.length >= 3 && s.name.toLowerCase().includes(cleanLower))
+          );
+        });
+        if (found) {
+          matchedStudent = { ...found };
+        }
+      }
+
+      if (!matchedStudent) {
+        setLoading(false);
+        return {
+          success: false,
+          message: `Siswa dengan NISN / Nama "${cleanQuery}" tidak ditemukan. Pastikan NISN sudah benar atau hubungi Guru Wali Anda.`,
+        };
+      }
+
+      const session: UserSession = {
+        uid: matchedStudent.id,
+        email: `${matchedStudent.nisn}@siswa.smkn3pangkep.sch.id`,
+        name: matchedStudent.name,
+        role: 'siswa',
+        studentId: matchedStudent.id,
+        nisn: matchedStudent.nisn,
+        classes: matchedStudent.className,
+        teacherName: matchedStudent.teacherName,
+        teacherNip: matchedStudent.teacherNip,
+      };
+
+      setUser(session);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
+      setLoading(false);
+      return { success: true, student: matchedStudent };
+    } catch (error: any) {
+      setLoading(false);
+      return { success: false, message: error.message || 'Terjadi kesalahan sistem saat login siswa.' };
+    }
+  };
+
   const logout = () => {
     setUser(null);
     localStorage.removeItem(STORAGE_KEY);
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, loginAsAdmin, loginAsGuru, logout }}>
+    <AuthContext.Provider value={{ user, loading, loginAsAdmin, loginAsGuru, loginAsStudent, logout }}>
       {children}
     </AuthContext.Provider>
   );

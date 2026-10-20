@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { PWAInstallButton } from './PWAInstallButton';
 import {
   LayoutDashboard,
   Users,
@@ -17,6 +18,7 @@ import {
   Menu,
   X,
   ChevronRight,
+  GraduationCap,
 } from 'lucide-react';
 
 export type NavTab =
@@ -44,6 +46,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onSelectTab }) => {
   const isAdminStaff = user?.role === 'admin_staf';
   const isPegawaiTu = user?.role === 'pegawai_tu' || user?.classes?.includes('Tata Usaha');
   const isGuruWali = user?.role === 'guru_wali' && !isPegawaiTu;
+  const isSiswa = user?.role === 'siswa';
   const canViewAll = isSuperAdmin || isAdminStaff;
 
   const handleNavClick = (tab: NavTab) => {
@@ -52,6 +55,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onSelectTab }) => {
   };
 
   const getActiveTabTitle = () => {
+    if (isSiswa && activeTab === 'dashboard') {
+      return 'Progres Hafalan Saya';
+    }
     switch (activeTab) {
       case 'dashboard':
         return 'Dashboard';
@@ -86,11 +92,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onSelectTab }) => {
           onClick={() => handleNavClick('dashboard')}
           className="p-5 border-b border-slate-800 flex items-center gap-3.5 cursor-pointer hover:bg-slate-800/40 transition group"
         >
-          <div className="w-11 h-11 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-400 p-0.5 shadow-md shadow-emerald-950/60 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-            <div className="w-full h-full bg-slate-950/80 rounded-[10px] flex items-center justify-center">
-              <BookOpen className="w-6 h-6 text-emerald-400" />
-            </div>
-          </div>
+          <img
+            src="/app-logo.png"
+            alt="Logo Monitoring Hafalan Al Quran"
+            className="w-11 h-11 rounded-xl shadow-md shadow-emerald-950/60 object-cover shrink-0 border border-emerald-500/30 group-hover:scale-105 transition-transform"
+          />
           <div className="min-w-0">
             <div className="flex items-center gap-1.5">
               <span className="text-white font-extrabold text-base tracking-tight truncate">
@@ -101,7 +107,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onSelectTab }) => {
               </span>
             </div>
             <p className="text-[11px] text-emerald-200/70 font-medium truncate mt-0.5">
-              {isPegawaiTu
+              {isSiswa
+                ? "Portal Siswa SMKN 3"
+                : isPegawaiTu
                 ? "Monitoring Pegawai TU"
                 : canViewAll
                 ? "Monitoring Terpadu"
@@ -112,45 +120,87 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onSelectTab }) => {
 
         {/* Navigation Menu List */}
         <nav className="p-3 space-y-5 overflow-y-auto max-h-[calc(100vh-250px)] lg:max-h-[calc(100vh-270px)] custom-scrollbar">
-          {/* Group: Menu Utama */}
-          <div>
-            <div className="px-3 mb-1.5 text-[10px] font-bold tracking-wider text-slate-400 uppercase">
-              Menu Utama
-            </div>
-            <div className="space-y-1">
-              <button
-                type="button"
-                onClick={() => handleNavClick('dashboard')}
-                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition cursor-pointer text-left ${
-                  activeTab === 'dashboard'
-                    ? 'bg-emerald-600 text-white shadow-md shadow-emerald-950/30'
-                    : 'text-slate-300 hover:text-white hover:bg-slate-800/80'
-                }`}
-              >
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <LayoutDashboard className={`w-4 h-4 shrink-0 ${activeTab === 'dashboard' ? 'text-white' : 'text-emerald-400'}`} />
-                  <span className="truncate">Dashboard</span>
-                </div>
-                {activeTab === 'dashboard' && <ChevronRight className="w-3.5 h-3.5 shrink-0 opacity-80" />}
-              </button>
+          {/* Siswa Navigation Mode */}
+          {isSiswa ? (
+            <div>
+              <div className="px-3 mb-1.5 text-[10px] font-bold tracking-wider text-slate-400 uppercase">
+                Menu Siswa
+              </div>
+              <div className="space-y-1">
+                <button
+                  type="button"
+                  onClick={() => handleNavClick('dashboard')}
+                  className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition cursor-pointer text-left ${
+                    activeTab === 'dashboard'
+                      ? 'bg-emerald-600 text-white shadow-md shadow-emerald-950/30'
+                      : 'text-slate-300 hover:text-white hover:bg-slate-800/80'
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <Award className={`w-4 h-4 shrink-0 ${activeTab === 'dashboard' ? 'text-white' : 'text-emerald-400'}`} />
+                    <span className="truncate">Progres Hafalan Saya</span>
+                  </div>
+                  {activeTab === 'dashboard' && <ChevronRight className="w-3.5 h-3.5 shrink-0 opacity-80" />}
+                </button>
 
-              <button
-                type="button"
-                onClick={() => handleNavClick('baca_quran')}
-                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition cursor-pointer text-left ${
-                  activeTab === 'baca_quran'
-                    ? 'bg-emerald-600 text-white shadow-md shadow-emerald-950/30'
-                    : 'text-slate-300 hover:text-white hover:bg-slate-800/80'
-                }`}
-              >
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <BookOpen className={`w-4 h-4 shrink-0 ${activeTab === 'baca_quran' ? 'text-white' : 'text-teal-400'}`} />
-                  <span className="truncate">Baca Al-Qur'an</span>
-                </div>
-                {activeTab === 'baca_quran' && <ChevronRight className="w-3.5 h-3.5 shrink-0 opacity-80" />}
-              </button>
+                <button
+                  type="button"
+                  onClick={() => handleNavClick('baca_quran')}
+                  className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition cursor-pointer text-left ${
+                    activeTab === 'baca_quran'
+                      ? 'bg-emerald-600 text-white shadow-md shadow-emerald-950/30'
+                      : 'text-slate-300 hover:text-white hover:bg-slate-800/80'
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <BookOpen className={`w-4 h-4 shrink-0 ${activeTab === 'baca_quran' ? 'text-white' : 'text-teal-400'}`} />
+                    <span className="truncate">Baca Al-Qur'an</span>
+                  </div>
+                  {activeTab === 'baca_quran' && <ChevronRight className="w-3.5 h-3.5 shrink-0 opacity-80" />}
+                </button>
+              </div>
             </div>
-          </div>
+          ) : (
+            <>
+              {/* Group: Menu Utama */}
+              <div>
+                <div className="px-3 mb-1.5 text-[10px] font-bold tracking-wider text-slate-400 uppercase">
+                  Menu Utama
+                </div>
+                <div className="space-y-1">
+                  <button
+                    type="button"
+                    onClick={() => handleNavClick('dashboard')}
+                    className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition cursor-pointer text-left ${
+                      activeTab === 'dashboard'
+                        ? 'bg-emerald-600 text-white shadow-md shadow-emerald-950/30'
+                        : 'text-slate-300 hover:text-white hover:bg-slate-800/80'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <LayoutDashboard className={`w-4 h-4 shrink-0 ${activeTab === 'dashboard' ? 'text-white' : 'text-emerald-400'}`} />
+                      <span className="truncate">Dashboard</span>
+                    </div>
+                    {activeTab === 'dashboard' && <ChevronRight className="w-3.5 h-3.5 shrink-0 opacity-80" />}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleNavClick('baca_quran')}
+                    className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition cursor-pointer text-left ${
+                      activeTab === 'baca_quran'
+                        ? 'bg-emerald-600 text-white shadow-md shadow-emerald-950/30'
+                        : 'text-slate-300 hover:text-white hover:bg-slate-800/80'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <BookOpen className={`w-4 h-4 shrink-0 ${activeTab === 'baca_quran' ? 'text-white' : 'text-teal-400'}`} />
+                      <span className="truncate">Baca Al-Qur'an</span>
+                    </div>
+                    {activeTab === 'baca_quran' && <ChevronRight className="w-3.5 h-3.5 shrink-0 opacity-80" />}
+                  </button>
+                </div>
+              </div>
 
           {/* Group: Pembiasaan Siswa (Guru Wali & Admin, Pegawai TU tidak memiliki anak bimbingan) */}
           {!isPegawaiTu && (
@@ -313,11 +363,16 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onSelectTab }) => {
               </div>
             </div>
           )}
+            </>
+          )}
         </nav>
       </div>
 
       {/* Bottom Profile & Logout Section */}
       <div className="p-3 border-t border-slate-800 bg-slate-950/50 space-y-2.5 mt-auto">
+        {/* PWA Install Button */}
+        <PWAInstallButton variant="sidebar" />
+
         {/* User Details Card */}
         <div className="p-2.5 rounded-xl bg-slate-800/60 border border-slate-700/60">
           <div className="flex items-center gap-2.5">
@@ -339,6 +394,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onSelectTab }) => {
                     <Shield className="w-2.5 h-2.5" />
                     Admin Staf
                   </span>
+                ) : isSiswa ? (
+                  <span className="inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-blue-500/20 text-blue-300 border border-blue-500/40">
+                    <GraduationCap className="w-2.5 h-2.5" />
+                    Siswa ({user?.classes || 'SMK'})
+                  </span>
                 ) : user?.classes?.includes('Tata Usaha') ? (
                   <span className="inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-teal-500/20 text-teal-300 border border-teal-500/40">
                     <UserCheck className="w-2.5 h-2.5" />
@@ -350,11 +410,15 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onSelectTab }) => {
                     Guru Wali
                   </span>
                 )}
-                {user?.nip && (
+                {user?.nisn ? (
+                  <span className="text-[10px] text-slate-400 font-mono truncate" title={`NISN: ${user.nisn}`}>
+                    NISN: {user.nisn}
+                  </span>
+                ) : user?.nip ? (
                   <span className="text-[10px] text-slate-400 font-mono truncate" title={`NIP: ${user.nip}`}>
                     {user.nip}
                   </span>
-                )}
+                ) : null}
               </div>
             </div>
           </div>
