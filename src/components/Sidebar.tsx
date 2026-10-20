@@ -451,6 +451,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onSelectTab }) => {
             >
               <Menu className="w-5 h-5" />
             </button>
+            <img
+              src="/app-logo.png"
+              alt="Logo"
+              className="w-8 h-8 rounded-lg object-contain shadow-sm shrink-0"
+            />
             <div className="min-w-0">
               <span className="text-white font-extrabold text-sm block truncate">
                 SMKN 3 PANGKEP

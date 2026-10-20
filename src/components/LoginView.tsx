@@ -74,23 +74,28 @@ export const LoginView: React.FC = () => {
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[500px] bg-emerald-500/10 blur-[130px] rounded-full pointer-events-none" />
       <div className="absolute -bottom-24 -left-24 w-96 h-96 bg-teal-500/10 blur-[100px] rounded-full pointer-events-none" />
 
-      {/* Header & Logo */}
-      <div className="text-center mb-6 relative z-10 max-w-xl">
-        <div className="inline-block p-1 bg-emerald-500/20 border border-emerald-400/40 rounded-3xl mb-3 backdrop-blur-md shadow-2xl shadow-emerald-950/80">
-          <img
-            src="/app-logo.png"
-            alt="Monitoring Hafalan Al Quran SMKN 3 Pangkep"
-            className="w-20 h-20 sm:w-24 sm:h-24 rounded-[22px] object-cover shadow-inner"
-          />
+      {/* Header & Logo - Pas Tengah Bagian Atas dengan Presisi */}
+      <div className="w-full max-w-md mx-auto flex flex-col items-center justify-center text-center mb-6 relative z-10">
+        <div className="flex items-center justify-center mb-3.5">
+          <div className="p-1.5 bg-emerald-500/15 border border-emerald-400/30 rounded-[28px] backdrop-blur-md shadow-2xl shadow-emerald-950/90 flex items-center justify-center">
+            <img
+              src="/app-logo.png"
+              alt="Monitoring Hafalan Al Quran SMKN 3 Pangkep"
+              className="w-24 h-24 sm:w-28 sm:h-28 rounded-[24px] object-contain block shadow-inner"
+            />
+          </div>
         </div>
-        <div className="inline-block px-3 py-1 bg-emerald-500/20 border border-emerald-400/30 rounded-full text-emerald-300 text-xs font-semibold tracking-wider uppercase mb-2">
-          Juz 'Amma • Juz 30
+
+        <div className="inline-flex items-center justify-center gap-1.5 px-3.5 py-1 bg-emerald-500/20 border border-emerald-400/30 rounded-full text-emerald-300 text-xs font-semibold tracking-wider uppercase mb-2">
+          <span>Juz 'Amma • Juz 30</span>
         </div>
-        <h1 className="text-2xl md:text-3xl font-extrabold text-white tracking-tight">
+
+        <h1 className="text-2xl md:text-3xl font-extrabold text-white tracking-tight text-center">
           Monitoring Hafalan Al Quran
         </h1>
-        <p className="text-emerald-200/80 font-medium text-sm md:text-base mt-1 flex items-center justify-center gap-1.5">
-          <School className="w-4 h-4 text-emerald-400 inline" /> SMKN 3 PANGKEP (PANGKAJENE DAN KEPULAUAN)
+        <p className="text-emerald-200/80 font-medium text-xs sm:text-sm mt-1.5 flex items-center justify-center gap-1.5 text-center">
+          <School className="w-4 h-4 text-emerald-400 inline shrink-0" />
+          <span>SMKN 3 PANGKEP (PANGKAJENE DAN KEPULAUAN)</span>
         </p>
       </div>
 
