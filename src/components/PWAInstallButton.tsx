@@ -9,6 +9,10 @@ import {
   PlusSquare,
   Sparkles,
   HelpCircle,
+  RotateCw,
+  AlertTriangle,
+  ChevronRight,
+  Settings,
 } from 'lucide-react';
 import { usePWAInstall } from '../hooks/usePWAInstall';
 
@@ -17,22 +21,11 @@ interface PWAInstallButtonProps {
 }
 
 export const PWAInstallButton: React.FC<PWAInstallButtonProps> = ({ variant = 'sidebar' }) => {
-  const { isInstallable, isInstalled, isIOS, install } = usePWAInstall();
+  const { isInstallable, isInstalled, isIOS, install, resetCacheAndReload } = usePWAInstall();
   const [showGuideModal, setShowGuideModal] = useState(false);
   const [installSuccess, setInstallSuccess] = useState(false);
-
-  // If already running in standalone PWA mode, don't clutter the UI
-  if (isInstalled) {
-    if (variant === 'sidebar') {
-      return (
-        <div className="px-3 py-2 rounded-xl bg-emerald-950/40 border border-emerald-500/30 text-emerald-300 text-xs flex items-center gap-2">
-          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-          <span className="truncate text-[11px] font-semibold">Mode PWA Aktif</span>
-        </div>
-      );
-    }
-    return null;
-  }
+  const [isResetting, setIsResetting] = useState(false);
+  const [showTroubleshoot, setShowTroubleshoot] = useState(false);
 
   const handleInstallClick = async () => {
     if (isInstallable) {
@@ -41,10 +34,38 @@ export const PWAInstallButton: React.FC<PWAInstallButtonProps> = ({ variant = 's
         setInstallSuccess(true);
       }
     } else {
-      // Show instructional guide modal for iOS or browsers that hide native prompt
+      // Show instructional guide modal for iOS, Chrome throttle, or manual install
       setShowGuideModal(true);
     }
   };
+
+  const handleResetCache = async () => {
+    setIsResetting(true);
+    await resetCacheAndReload();
+  };
+
+  // If already running in standalone PWA mode
+  if (isInstalled) {
+    if (variant === 'sidebar') {
+      return (
+        <div className="px-3 py-2 rounded-xl bg-emerald-950/40 border border-emerald-500/30 text-emerald-300 text-xs flex items-center justify-between">
+          <div className="flex items-center gap-2 min-w-0">
+            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+            <span className="truncate text-[11px] font-semibold">Mode PWA Aktif</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowGuideModal(true)}
+            className="text-emerald-400 hover:text-white text-[10px] underline cursor-pointer"
+            title="Pengaturan PWA"
+          >
+            Bantuan
+          </button>
+        </div>
+      );
+    }
+    return null;
+  }
 
   return (
     <>
@@ -89,14 +110,27 @@ export const PWAInstallButton: React.FC<PWAInstallButtonProps> = ({ variant = 's
             </div>
           </div>
 
-          <button
-            type="button"
-            onClick={handleInstallClick}
-            className="w-full sm:w-auto px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs shadow-md transition flex items-center justify-center gap-1.5 cursor-pointer shrink-0"
-          >
-            <Download className="w-3.5 h-3.5" />
-            <span>Pasang Sekarang</span>
-          </button>
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <button
+              type="button"
+              onClick={handleInstallClick}
+              className="flex-1 sm:flex-initial px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs shadow-md transition flex items-center justify-center gap-1.5 cursor-pointer shrink-0"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>Pasang Sekarang</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setShowTroubleshoot(true);
+                setShowGuideModal(true);
+              }}
+              className="p-2 rounded-xl bg-slate-700/80 hover:bg-slate-700 text-slate-300 hover:text-white transition cursor-pointer"
+              title="Bantuan jika pernah menghapus aplikasi atau ikon tidak muncul"
+            >
+              <HelpCircle className="w-4 h-4 text-emerald-300" />
+            </button>
+          </div>
         </div>
       )}
 
@@ -122,10 +156,10 @@ export const PWAInstallButton: React.FC<PWAInstallButtonProps> = ({ variant = 's
         </div>
       )}
 
-      {/* Installation Guide Modal (for iOS or manual install) */}
+      {/* Installation Guide & Troubleshooting Modal */}
       {showGuideModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-          <div className="w-full max-w-md rounded-3xl bg-slate-900 border border-emerald-500/40 p-6 shadow-2xl text-white relative">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/85 backdrop-blur-sm p-4 animate-in fade-in duration-200 overflow-y-auto">
+          <div className="w-full max-w-lg rounded-3xl bg-slate-900 border border-emerald-500/40 p-5 sm:p-6 shadow-2xl text-white relative my-8 max-h-[90vh] overflow-y-auto custom-scrollbar">
             <button
               type="button"
               onClick={() => setShowGuideModal(false)}
@@ -142,80 +176,101 @@ export const PWAInstallButton: React.FC<PWAInstallButtonProps> = ({ variant = 's
                 className="w-12 h-12 rounded-2xl object-cover border border-emerald-500/40 shadow-md shrink-0"
               />
               <div>
-                <h3 className="text-base font-bold text-white">Petunjuk Pemasangan (PWA)</h3>
+                <h3 className="text-base font-bold text-white">Panduan Pemasangan & Solusi Ikon</h3>
                 <p className="text-xs text-emerald-300">Monitoring Hafalan Al Quran &bull; SMKN 3 Pangkep</p>
               </div>
             </div>
 
             <div className="space-y-4 text-xs text-slate-300">
-              {isIOS ? (
-                /* iOS Safari instructions */
-                <div className="p-4 rounded-2xl bg-slate-800/80 border border-slate-700/80 space-y-3">
-                  <p className="font-bold text-white flex items-center gap-1.5">
+              {/* Special Alert for Re-installation / Deleted App Issue */}
+              <div className="p-3.5 rounded-2xl bg-amber-500/15 border border-amber-500/40 text-amber-200 space-y-2">
+                <div className="flex items-center gap-2 font-bold text-amber-300 text-xs sm:text-sm">
+                  <AlertTriangle className="w-4 h-4 shrink-0 text-amber-400" />
+                  <span>Pernah Hapus Aplikasi Lalu Ikon Tidak Muncul?</span>
+                </div>
+                <p className="text-[11px] leading-relaxed text-amber-100">
+                  Pada HP Android, jika aplikasi dihapus dengan cara menyeret ikon ke "Hapus dari Beranda", sistem Android terkadang <strong>masih mencatat aplikasi sebagai terpasang (WebAPK)</strong>, atau Chrome menunda tombol pasang otomatis.
+                </p>
+              </div>
+
+              {/* Solusi 1: Pasang Manual via Menu Titik Tiga Chrome */}
+              <div className="p-4 rounded-2xl bg-slate-800/80 border border-slate-700/80 space-y-2.5">
+                <p className="font-bold text-white flex items-center gap-1.5 text-xs sm:text-sm">
+                  <span className="w-5 h-5 rounded-full bg-emerald-600 text-white text-[11px] flex items-center justify-center font-bold">1</span>
+                  <span>Solusi Tercepat di HP Android (Google Chrome):</span>
+                </p>
+                <ol className="list-decimal list-inside space-y-1.5 text-slate-300 leading-relaxed text-xs">
+                  <li>
+                    Di pojok kanan atas browser Google Chrome, ketuk <strong>Titik Tiga (⋮)</strong>.
+                  </li>
+                  <li>
+                    Pilih menu <strong className="text-emerald-300">"Pasang aplikasi" (Install app)</strong> atau <strong className="text-emerald-300">"Tambahkan ke Layar Utama" (Add to Home screen)</strong>.
+                  </li>
+                  <li>
+                    Konfirmasi dengan mengetuk <strong>"Pasang"</strong> atau <strong>"Tambahkan"</strong>. Ikon akan langsung muncul kembali di layar HP Anda!
+                  </li>
+                </ol>
+              </div>
+
+              {/* Solusi 2: Cek di Pengaturan Aplikasi Android */}
+              <div className="p-4 rounded-2xl bg-slate-800/80 border border-slate-700/80 space-y-2.5">
+                <p className="font-bold text-white flex items-center gap-1.5 text-xs sm:text-sm">
+                  <span className="w-5 h-5 rounded-full bg-emerald-600 text-white text-[11px] flex items-center justify-center font-bold">2</span>
+                  <span>Jika Masih Belum Muncul (Copot Pemasangan Penuh):</span>
+                </p>
+                <p className="text-slate-300 leading-relaxed text-xs">
+                  Buka <strong>Pengaturan HP (Settings) &rarr; Aplikasi (Apps / Kelola Aplikasi)</strong> &rarr; cari <strong>"Monitoring Hafalan Al Quran"</strong> atau <strong>"Tahfidz J30"</strong> &rarr; pilih <strong>Copot Pemasangan (Uninstall)</strong>. Setelah itu buka kembali link aplikasi ini dan pasang ulang.
+                </p>
+              </div>
+
+              {/* Solusi 3: Tombol Reset Cache & Reload PWA */}
+              <div className="p-4 rounded-2xl bg-slate-800/80 border border-emerald-500/30 space-y-2.5">
+                <p className="font-bold text-white flex items-center gap-1.5 text-xs sm:text-sm">
+                  <span className="w-5 h-5 rounded-full bg-emerald-600 text-white text-[11px] flex items-center justify-center font-bold">3</span>
+                  <span>Bersihkan Cache PWA Aplikasi:</span>
+                </p>
+                <p className="text-slate-300 text-xs">
+                  Tekan tombol di bawah ini untuk menghapus cache lama Service Worker dan menyegarkan sistem aplikasi secara bersih:
+                </p>
+                <button
+                  type="button"
+                  onClick={handleResetCache}
+                  disabled={isResetting}
+                  className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-slate-700 hover:bg-slate-600 text-white font-semibold text-xs border border-slate-600 transition cursor-pointer"
+                >
+                  <RotateCw className={`w-3.5 h-3.5 text-emerald-400 ${isResetting ? 'animate-spin' : ''}`} />
+                  <span>{isResetting ? 'Menyegarkan Cache...' : 'Bersihkan Cache & Refresh Halaman'}</span>
+                </button>
+              </div>
+
+              {/* iOS Safari Guide */}
+              {isIOS && (
+                <div className="p-4 rounded-2xl bg-slate-800/80 border border-slate-700/80 space-y-2.5">
+                  <p className="font-bold text-white flex items-center gap-1.5 text-xs sm:text-sm">
                     <Smartphone className="w-4 h-4 text-emerald-400" />
-                    Untuk Pengguna iPhone / iPad (Safari):
+                    <span>Untuk Pengguna iPhone / iPad (Safari):</span>
                   </p>
-                  <ol className="list-decimal list-inside space-y-2 text-slate-300 leading-relaxed">
+                  <ol className="list-decimal list-inside space-y-1.5 text-slate-300 leading-relaxed text-xs">
                     <li>
-                      Ketuk tombol <strong>Bagikan (Share)</strong>{' '}
-                      <Share2 className="w-3.5 h-3.5 inline text-sky-400" /> pada bilah menu Safari di bagian bawah.
+                      Ketuk tombol <strong>Bagikan (Share)</strong> <Share2 className="w-3.5 h-3.5 inline text-sky-400" /> di menu Safari bawah.
                     </li>
                     <li>
-                      Geser menu ke bawah lalu pilih menu{' '}
-                      <strong className="text-emerald-300">
-                        "Tambah ke Layar Utama" (Add to Home Screen)
-                      </strong>{' '}
-                      <PlusSquare className="w-3.5 h-3.5 inline text-emerald-400" />.
+                      Pilih <strong className="text-emerald-300">"Tambah ke Layar Utama" (Add to Home Screen)</strong> <PlusSquare className="w-3.5 h-3.5 inline text-emerald-400" />.
                     </li>
                     <li>
-                      Ketuk <strong>"Tambah" (Add)</strong> di pojok kanan atas.
+                      Ketuk <strong>"Tambah"</strong> di pojok kanan atas.
                     </li>
                   </ol>
-                  <p className="text-[11px] text-slate-400 pt-1 border-t border-slate-700">
-                    Ikon aplikasi akan langsung muncul di layar utama iPhone Anda seperti aplikasi asli!
-                  </p>
-                </div>
-              ) : (
-                /* Android / Chrome / Edge instructions */
-                <div className="space-y-3">
-                  <div className="p-3.5 rounded-2xl bg-slate-800/80 border border-slate-700/80 space-y-2">
-                    <p className="font-bold text-white flex items-center gap-1.5">
-                      <Smartphone className="w-4 h-4 text-emerald-400" />
-                      HP Android (Google Chrome):
-                    </p>
-                    <p className="text-slate-300 leading-relaxed">
-                      Ketuk <strong>titik tiga (⋮)</strong> di pojok kanan atas browser Chrome, lalu pilih{' '}
-                      <strong className="text-emerald-300">"Pasang aplikasi" (Install app)</strong> atau{' '}
-                      <strong className="text-emerald-300">"Tambahkan ke Layar Utama"</strong>.
-                    </p>
-                  </div>
-
-                  <div className="p-3.5 rounded-2xl bg-slate-800/80 border border-slate-700/80 space-y-2">
-                    <p className="font-bold text-white flex items-center gap-1.5">
-                      <Monitor className="w-4 h-4 text-teal-400" />
-                      Laptop / Komputer PC (Chrome & Edge):
-                    </p>
-                    <p className="text-slate-300 leading-relaxed">
-                      Klik ikon <strong>Komputer / Pasang Aplikasi</strong> di bilah alamat URL (di sebelah kanan bintang bookmark) lalu klik <strong>"Install"</strong>.
-                    </p>
-                  </div>
                 </div>
               )}
-
-              <div className="p-3 rounded-xl bg-emerald-950/50 border border-emerald-500/30 text-emerald-200 text-[11px] flex items-start gap-2">
-                <Sparkles className="w-4 h-4 text-amber-300 shrink-0 mt-0.5" />
-                <span>
-                  <strong>Selalu Mengikuti Pembaruan:</strong> Aplikasi PWA ini otomatis terhubung dengan server dan langsung diperbarui otomatis ketika ada fitur baru dari tim pengembang.
-                </span>
-              </div>
             </div>
 
             <button
               type="button"
               onClick={() => setShowGuideModal(false)}
-              className="mt-5 w-full py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-semibold text-xs transition cursor-pointer"
+              className="mt-5 w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs transition cursor-pointer shadow-md"
             >
-              Mengerti, Tutup
+              Mengerti, Tutup Panduan
             </button>
           </div>
         </div>

@@ -58,10 +58,33 @@ export function usePWAInstall() {
     return false;
   };
 
+  const resetCacheAndReload = async () => {
+    try {
+      if ('serviceWorker' in navigator) {
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        for (const reg of registrations) {
+          await reg.unregister();
+        }
+      }
+      if ('caches' in window) {
+        const keys = await caches.keys();
+        for (const key of keys) {
+          await caches.delete(key);
+        }
+      }
+      // Force reload ignoring cache
+      window.location.reload();
+    } catch (err) {
+      console.warn('Reset cache error:', err);
+      window.location.reload();
+    }
+  };
+
   return {
     isInstallable: !!deferredPrompt,
     isInstalled,
     isIOS,
     install,
+    resetCacheAndReload,
   };
 }
