@@ -180,8 +180,15 @@ export const LaporanMonitoringSiswaView: React.FC<LaporanMonitoringSiswaViewProp
     const pctBelum = total > 0 ? Math.round((belum / total) * 100) : 0;
 
     const totalMemorizedAll = filteredStudents.reduce((acc, s) => acc + (Number(s.totalMemorized) || 0), 0);
+    const totalTargetAll = filteredStudents.reduce((acc, s) => {
+      const mem = Number(s.totalMemorized) || 0;
+      const inp = Number(s.totalInProcess) || 0;
+      const rem = Number(s.totalRemaining) || 0;
+      const sSum = mem + inp + rem;
+      return acc + (sSum > 0 ? sSum : TOTAL_TARGET_SURAHS);
+    }, 0) || (total * TOTAL_TARGET_SURAHS);
     const avgSurah = total > 0 ? (totalMemorizedAll / total).toFixed(1) : '0';
-    const avgPct = total > 0 ? Math.round((totalMemorizedAll / (total * TOTAL_TARGET_SURAHS)) * 100) : 0;
+    const globalPct = totalTargetAll > 0 ? Math.round((totalMemorizedAll / totalTargetAll) * 100) : 0;
 
     // Filter scope info
     const isAllTeacher = !canDownloadAll || selectedTeacherNip === 'all';
@@ -192,18 +199,32 @@ export const LaporanMonitoringSiswaView: React.FC<LaporanMonitoringSiswaViewProp
 
     const classScopeLabel = selectedClass === 'all' ? 'Semua Kelas' : `Kelas ${selectedClass}`;
 
-    // Grouping per Guru Wali
+    // Grouping per Guru Wali sesuai capaian & target pada dashboard guru masing-masing
     const teacherStatsMap = new Map<string, {
       nip: string;
       name: string;
       classes: string;
       total: number;
-      tuntas: number;
-      proses: number;
-      belum: number;
       memorizedSurahs: number;
+      targetSurahs: number;
+      percent: number;
     }>();
 
+    // 1. Inisialisasi dari daftar guru wali
+    guruWaliList.forEach((g) => {
+      if (selectedTeacherNip !== 'all' && g.nip !== selectedTeacherNip) return;
+      teacherStatsMap.set(g.nip, {
+        nip: g.nip,
+        name: g.name,
+        classes: g.classes || '',
+        total: 0,
+        memorizedSurahs: 0,
+        targetSurahs: 0,
+        percent: 0,
+      });
+    });
+
+    // 2. Akumulasi data siswa yang sedang difilter
     filteredStudents.forEach((s) => {
       const nip = s.teacherNip || 'unassigned';
       if (!teacherStatsMap.has(nip)) {
@@ -212,27 +233,33 @@ export const LaporanMonitoringSiswaView: React.FC<LaporanMonitoringSiswaViewProp
           name: s.teacherName || 'Guru Pembimbing',
           classes: s.className || '',
           total: 0,
-          tuntas: 0,
-          proses: 0,
-          belum: 0,
           memorizedSurahs: 0,
+          targetSurahs: 0,
+          percent: 0,
         });
       }
       const stat = teacherStatsMap.get(nip)!;
       stat.total += 1;
       const mem = Number(s.totalMemorized) || 0;
       const inp = Number(s.totalInProcess) || 0;
+      const rem = Number(s.totalRemaining) || 0;
       stat.memorizedSurahs += mem;
-      if (mem >= TOTAL_TARGET_SURAHS) stat.tuntas += 1;
-      else if (mem > 0 || inp > 0) stat.proses += 1;
-      else stat.belum += 1;
+      const sSum = mem + inp + rem;
+      stat.targetSurahs += sSum > 0 ? sSum : TOTAL_TARGET_SURAHS;
     });
 
-    const teacherStatsList = Array.from(teacherStatsMap.values()).sort((a, b) => {
-      const pctA = a.total > 0 ? a.tuntas / a.total : 0;
-      const pctB = b.total > 0 ? b.tuntas / b.total : 0;
-      return pctB - pctA;
-    });
+    // 3. Tampilkan guru yang membina siswa pada filter aktif, diurutkan persentase tertinggi
+    const teacherStatsList = Array.from(teacherStatsMap.values())
+      .filter((t) => t.total > 0)
+      .map((t) => {
+        const percent = t.targetSurahs > 0 ? Math.round((t.memorizedSurahs / t.targetSurahs) * 100) : 0;
+        return { ...t, percent };
+      })
+      .sort((a, b) => {
+        if (b.percent !== a.percent) return b.percent - a.percent;
+        if (b.memorizedSurahs !== a.memorizedSurahs) return b.memorizedSurahs - a.memorizedSurahs;
+        return a.name.localeCompare(b.name);
+      });
 
     let message = `*LAPORAN RINGKAS MONITORING HAFALAN SISWA*\n`;
     message += `*UPT SMKN 3 PANGKEP - TAHFIDZ JUZ 30*\n`;
@@ -243,38 +270,21 @@ export const LaporanMonitoringSiswaView: React.FC<LaporanMonitoringSiswaViewProp
     message += `👥 *Total Siswa Terpantau:* ${total} Siswa\n`;
     message += `━━━━━━━━━━━━━━━━━━━━\n\n`;
 
-    message += `📊 *RINGKASAN CAPAIAN PROGRES HAFALAN:*\n`;
-    message += `• Target: ${TOTAL_TARGET_SURAHS} Surah (Al-Fatihah & Juz 30)\n`;
+    message += `📊 *RINGKASAN STATISTIK GLOBAL:*\n`;
+    message += `• Target Standar : ${TOTAL_TARGET_SURAHS} Surah (Al-Fatihah & Juz 30)\n`;
+    message += `• Akumulasi Capaian : ${totalMemorizedAll}/${totalTargetAll} Surah (${globalPct}%)\n`;
     message += `• ✅ *Sudah Tuntas (100%)* : ${tuntas} Siswa (${pctTuntas}%)\n`;
     message += `• ⏳ *Sedang Berproses* : ${proses} Siswa (${pctProses}%)\n`;
     message += `• 📖 *Belum Mulai* : ${belum} Siswa (${pctBelum}%)\n`;
-    message += `• 📈 *Rata-rata Capaian* : ${avgSurah} Surah / Siswa (${avgPct}%)\n\n`;
+    message += `• 📈 *Rata-rata Capaian* : ${avgSurah} Surah / Siswa\n\n`;
 
     if (mode === 'rekap_guru') {
-      message += `👨‍🏫 *PROGRES PEMBIASAAN PER GURU WALI:*\n`;
+      message += `👨‍🏫 *REKAP PROGRES SETIAP GURU WALI:*\n`;
       if (teacherStatsList.length === 0) {
         message += `_(Tidak ada data guru pembimbing)_\n\n`;
       } else {
         teacherStatsList.forEach((t, i) => {
-          const tPct = t.total > 0 ? Math.round((t.tuntas / t.total) * 100) : 0;
-          message += `${i + 1}. *${t.name}*\n`;
-          message += `   • Siswa Bimbingan: ${t.total} Siswa\n`;
-          message += `   • Capaian: ✅ ${t.tuntas} Tuntas | ⏳ ${t.proses} Proses | 📖 ${t.belum} Belum\n`;
-          message += `   • Persentase Tuntas: *${tPct}%*\n\n`;
-        });
-      }
-
-      // Top 5 students with highest memorization
-      const topStudents = [...filteredStudents]
-        .sort((a, b) => (Number(b.totalMemorized) || 0) - (Number(a.totalMemorized) || 0))
-        .slice(0, 5);
-
-      if (topStudents.length > 0) {
-        message += `🌟 *SISWA DENGAN PROGRES HAFALAN TERTINGGI:*\n`;
-        topStudents.forEach((s, idx) => {
-          const mem = Number(s.totalMemorized) || 0;
-          const pct = Math.round((mem / TOTAL_TARGET_SURAHS) * 100);
-          message += `${idx + 1}. *${s.name}* (${s.className}) : ${mem} Surah (${pct}%)\n`;
+          message += `${i + 1}. *${t.name}*: ${t.memorizedSurahs}/${t.targetSurahs}: ${t.percent} persen\n`;
         });
         message += `\n`;
       }
