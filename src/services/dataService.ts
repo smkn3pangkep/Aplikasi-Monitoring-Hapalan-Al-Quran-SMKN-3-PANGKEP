@@ -170,6 +170,91 @@ export async function initializeDatabase() {
         );
       }
     }
+
+    // 5. Sync missing Guru Wali accounts from students collection (e.g., WARDAYANTI, S.Pd & FIRMAN, S.Pd)
+    const [allTeachersSnap, allStudentsSnap] = await Promise.all([
+      getDocs(collection(db, TEACHERS_COL)),
+      getDocs(collection(db, STUDENTS_COL)),
+    ]);
+
+    const existingTeacherNips = new Set<string>();
+    allTeachersSnap.forEach((d) => {
+      const nipVal = String(d.data().nip || '').replace(/[\s\.\-']/g, '');
+      if (nipVal) existingTeacherNips.add(nipVal);
+    });
+
+    const missingTeachersMap = new Map<string, { name: string; classes: Set<string>; count: number }>();
+    allStudentsSnap.forEach((d) => {
+      const sData = d.data() as Student;
+      const nipClean = String(sData.teacherNip || '').replace(/[\s\.\-']/g, '');
+      if (
+        nipClean &&
+        /^\d{8,}$/.test(nipClean) &&
+        !existingTeacherNips.has(nipClean)
+      ) {
+        if (!missingTeachersMap.has(nipClean)) {
+          missingTeachersMap.set(nipClean, {
+            name: sData.teacherName || 'Guru Wali',
+            classes: new Set<string>(),
+            count: 0,
+          });
+        }
+        const entry = missingTeachersMap.get(nipClean)!;
+        if (sData.className) entry.classes.add(sData.className);
+        entry.count += 1;
+      }
+    });
+
+    // Ensure known missing active teachers (and any teacher with >= 2 students) are created
+    const KNOWN_ACTIVE_GURU: Record<string, { name: string; classes: string }> = {
+      '199612122023212032': { name: 'WARDAYANTI, S.Pd', classes: 'XI TJKT 2' },
+      '198207132009021004': { name: 'FIRMAN, S.Pd', classes: 'X TITL 2' },
+    };
+
+    for (const [nipKey, known] of Object.entries(KNOWN_ACTIVE_GURU)) {
+      if (!existingTeacherNips.has(nipKey)) {
+        const info = missingTeachersMap.get(nipKey);
+        const classStr = info && info.classes.size > 0 ? Array.from(info.classes).join(', ') : known.classes;
+        const tDocId = `teacher-${nipKey}`;
+        await setDoc(doc(db, TEACHERS_COL, tDocId), {
+          id: tDocId,
+          nip: nipKey,
+          name: info?.name || known.name,
+          email: `${nipKey}@smkn3pangkep.sch.id`,
+          phone: '-',
+          classes: classStr,
+          role: 'guru_wali',
+          password: 'bismillah',
+          isActive: true,
+          createdAt: new Date().toISOString(),
+          totalMemorized: 0,
+          totalInProcess: 0,
+          totalRemaining: JUZ_30_SURAHS.length,
+        });
+        existingTeacherNips.add(nipKey);
+      }
+    }
+
+    for (const [nipKey, info] of missingTeachersMap.entries()) {
+      if (!existingTeacherNips.has(nipKey) && info.count >= 2) {
+        const tDocId = `teacher-${nipKey}`;
+        await setDoc(doc(db, TEACHERS_COL, tDocId), {
+          id: tDocId,
+          nip: nipKey,
+          name: info.name,
+          email: `${nipKey}@smkn3pangkep.sch.id`,
+          phone: '-',
+          classes: Array.from(info.classes).join(', ') || 'Guru Wali',
+          role: 'guru_wali',
+          password: 'bismillah',
+          isActive: true,
+          createdAt: new Date().toISOString(),
+          totalMemorized: 0,
+          totalInProcess: 0,
+          totalRemaining: JUZ_30_SURAHS.length,
+        });
+      }
+    }
   } catch (error) {
     console.error('Error seeding initial data:', error);
   }
@@ -363,12 +448,57 @@ export function subscribeStudents(callback: (students: Student[]) => void, teach
   }
 }
 
+export async function ensureTeacherExists(
+  nip: string,
+  name: string,
+  className?: string
+): Promise<void> {
+  const cleanNip = String(nip || '').replace(/[\s\.\-']/g, '');
+  if (!cleanNip || !/^\d{8,}$/.test(cleanNip)) return;
+
+  try {
+    const q = query(collection(db, TEACHERS_COL), where('nip', '==', cleanNip));
+    const snap = await getDocs(q);
+    if (snap.empty) {
+      const tDocId = `teacher-${cleanNip}`;
+      const docRef = doc(db, TEACHERS_COL, tDocId);
+      const existingById = await getDoc(docRef);
+      if (!existingById.exists()) {
+        await setDoc(docRef, {
+          id: tDocId,
+          nip: cleanNip,
+          name: name || 'Guru Wali',
+          email: `${cleanNip}@smkn3pangkep.sch.id`,
+          phone: '-',
+          classes: className || 'Guru Wali',
+          role: 'guru_wali',
+          password: 'bismillah',
+          isActive: true,
+          totalMemorized: 0,
+          totalInProcess: 0,
+          totalRemaining: JUZ_30_SURAHS.length,
+          createdAt: new Date().toISOString(),
+        });
+      }
+    }
+  } catch (e) {
+    console.warn('Warning ensuring teacher account:', e);
+  }
+}
+
 export async function addStudent(studentData: Omit<Student, 'id' | 'createdAt' | 'lastUpdated' | 'totalMemorized' | 'totalInProcess' | 'totalRemaining'>): Promise<string> {
   const path = STUDENTS_COL;
   try {
+    const normalizedTeacherNip = /^\d[\d\s\.\-']+$/.test(String(studentData.teacherNip || '').trim())
+      ? String(studentData.teacherNip).replace(/[\s\.\-']/g, '')
+      : String(studentData.teacherNip || '').trim();
+
+    await ensureTeacherExists(normalizedTeacherNip, studentData.teacherName, studentData.className);
+
     const id = `student-${Date.now()}`;
     const newStudent: Student = {
       ...studentData,
+      teacherNip: normalizedTeacherNip,
       id,
       totalMemorized: 0,
       totalInProcess: 0,
@@ -395,7 +525,7 @@ export async function addStudent(studentData: Omit<Student, 'id' | 'createdAt' |
     }
 
     await logActivity({
-      actorNip: studentData.teacherNip,
+      actorNip: normalizedTeacherNip,
       actorName: studentData.teacherName,
       actorRole: 'Guru Wali',
       action: 'Tambah Siswa',
@@ -981,6 +1111,9 @@ export async function processExcelUpload(
           const kelas = String(row['Kelas'] || row['kelas'] || '').trim();
           let namaGuru = String(row['Nama Guru'] || row['nama_guru'] || '').trim();
           let nip = String(row['NIP'] || row['nip'] || '').trim();
+          if (/^[\d\s\.\-']+$/.test(nip) && nip.replace(/[\s\.\-']/g, '').length >= 8) {
+            nip = nip.replace(/[\s\.\-']/g, '');
+          }
 
           if (!namaSiswa || !nisn || !kelas) {
             errors.push(`Baris ${rowNum}: Nama Siswa, NISN, dan Kelas wajib diisi.`);

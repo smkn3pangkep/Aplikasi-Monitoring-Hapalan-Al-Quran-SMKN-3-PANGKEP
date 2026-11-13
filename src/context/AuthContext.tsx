@@ -136,7 +136,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setLoading(true);
     try {
       const cleanNip = nip.trim();
-      const strippedNip = cleanNip.replace(/[\s\.\-]/g, '');
+      const strippedNip = cleanNip.replace(/[\s\.\-']/g, '');
       const cleanPass = pass.trim();
 
       if (!cleanNip || !cleanPass) {
@@ -147,38 +147,53 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       let matchedDoc: any = null;
       let matchedDocId: string = '';
 
-      // 1. Query by exact NIP
+      // 1. Query by exact NIP (prefer active doc if duplicates exist)
       const q = query(collection(db, 'teachers'), where('nip', '==', cleanNip));
       const querySnap = await getDocs(q);
 
       if (!querySnap.empty) {
-        matchedDoc = querySnap.docs[0].data();
-        matchedDocId = querySnap.docs[0].id;
-      } else if (strippedNip !== cleanNip) {
-        // Query by stripped NIP (no spaces or dashes)
+        const activeDoc = querySnap.docs.find((d) => d.data().isActive !== false) || querySnap.docs[0];
+        matchedDoc = activeDoc.data();
+        matchedDocId = activeDoc.id;
+      } else if (strippedNip && strippedNip !== cleanNip) {
+        // Query by stripped NIP (no spaces, dots, dashes, or apostrophes)
         const qStrip = query(collection(db, 'teachers'), where('nip', '==', strippedNip));
         const snapStrip = await getDocs(qStrip);
         if (!snapStrip.empty) {
-          matchedDoc = snapStrip.docs[0].data();
-          matchedDocId = snapStrip.docs[0].id;
+          const activeDoc = snapStrip.docs.find((d) => d.data().isActive !== false) || snapStrip.docs[0];
+          matchedDoc = activeDoc.data();
+          matchedDocId = activeDoc.id;
         }
       }
 
-      // 2. If not found in query, search memory across all teacher docs
+      // 2. If not found in query, search memory across all teacher docs safely
       if (!matchedDoc) {
         const allSnap = await getDocs(collection(db, 'teachers'));
-        const found = allSnap.docs.find((d) => {
-          const data = d.data();
-          const docNip = String(data.nip || '').trim();
-          const docNipStrip = docNip.replace(/[\s\.\-]/g, '');
-          return (
-            docNip === cleanNip ||
-            docNipStrip === strippedNip ||
-            docNipStrip.includes(strippedNip) ||
-            strippedNip.includes(docNipStrip) ||
-            (data.name && data.name.toLowerCase() === cleanNip.toLowerCase())
-          );
-        });
+        const isNumericInput = /^\d{6,}$/.test(strippedNip);
+        const found =
+          allSnap.docs.find((d) => {
+            const data = d.data();
+            const docNip = String(data.nip || '').trim();
+            const docNipStrip = docNip.replace(/[\s\.\-']/g, '');
+            const docName = String(data.name || '').trim().toLowerCase();
+            return (
+              (docNip !== '' && docNip === cleanNip) ||
+              (docNipStrip !== '' && strippedNip !== '' && docNipStrip === strippedNip) ||
+              (docName !== '' && docName === cleanNip.toLowerCase())
+            );
+          }) ||
+          allSnap.docs.find((d) => {
+            const data = d.data();
+            const docNipStrip = String(data.nip || '').replace(/[\s\.\-']/g, '');
+            const docName = String(data.name || '').trim().toLowerCase();
+            if (isNumericInput && docNipStrip.length >= 8 && strippedNip.length >= 8) {
+              return docNipStrip.includes(strippedNip) || strippedNip.includes(docNipStrip);
+            }
+            if (!isNumericInput && cleanNip.length >= 5 && docName) {
+              return docName.includes(cleanNip.toLowerCase());
+            }
+            return false;
+          });
 
         if (found) {
           matchedDoc = found.data();
@@ -186,36 +201,98 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       }
 
-      // 3. Fallback: Auto-create/restore EMIL AIDIN, S.Pd (NIP: 199005252023211010)
-      if (
-        !matchedDoc &&
-        (strippedNip === '199005252023211010' ||
-          cleanNip === '199005252023211010' ||
-          cleanNip.toLowerCase().includes('emil aidin'))
-      ) {
-        const emilDocId = 'teacher-199005252023211010';
-        const emilData = {
-          id: emilDocId,
-          nip: '199005252023211010',
-          name: 'EMIL AIDIN, S.Pd',
-          classes: 'Guru Wali',
-          role: 'guru_wali',
-          email: '199005252023211010@smkn3pangkep.sch.id',
-          phone: '-',
-          password: 'bismillah',
-          isActive: true,
-          totalMemorized: 0,
-          totalInProcess: 0,
-          totalRemaining: 38,
-          createdAt: new Date().toISOString(),
-        };
+      // 3. Fallback: Auto-restore active Guru Wali if present in students collection
+      if (!matchedDoc) {
         try {
-          await setDoc(doc(db, 'teachers', emilDocId), emilData);
-        } catch (e) {
-          console.error('Error persisting Emil Aidin record:', e);
+          const studentsSnap = await getDocs(collection(db, 'students'));
+          const matchedStudents = studentsSnap.docs
+            .map((d) => d.data() as Student)
+            .filter((s) => {
+              const sNip = String(s.teacherNip || '').trim();
+              const sNipStrip = sNip.replace(/[\s\.\-']/g, '');
+              const sTName = String(s.teacherName || '').trim().toLowerCase();
+              return (
+                (sNip !== '' && sNip === cleanNip) ||
+                (sNipStrip !== '' && strippedNip !== '' && sNipStrip === strippedNip) ||
+                (!/^\d+$/.test(strippedNip) && cleanNip.length >= 5 && sTName.includes(cleanNip.toLowerCase()))
+              );
+            });
+
+          if (matchedStudents.length > 0) {
+            const firstMatch = matchedStudents[0];
+            const resolvedNip = String(firstMatch.teacherNip || strippedNip).replace(/[\s\.\-']/g, '');
+            if (resolvedNip && /^\d{8,}$/.test(resolvedNip)) {
+              const uniqueClasses = Array.from(
+                new Set(matchedStudents.map((s) => s.className).filter(Boolean))
+              ).join(', ');
+              const restoredDocId = `teacher-${resolvedNip}`;
+              const restoredData = {
+                id: restoredDocId,
+                nip: resolvedNip,
+                name: firstMatch.teacherName || 'Guru Wali',
+                classes: uniqueClasses || 'Guru Wali',
+                role: 'guru_wali',
+                email: `${resolvedNip}@smkn3pangkep.sch.id`,
+                phone: '-',
+                password: 'bismillah',
+                isActive: true,
+                totalMemorized: 0,
+                totalInProcess: 0,
+                totalRemaining: 38,
+                createdAt: new Date().toISOString(),
+              };
+              try {
+                await setDoc(doc(db, 'teachers', restoredDocId), restoredData);
+              } catch (e) {
+                console.error('Error persisting auto-restored teacher record:', e);
+              }
+              matchedDoc = restoredData;
+              matchedDocId = restoredDocId;
+            }
+          }
+        } catch (err) {
+          console.warn('Warning checking students collection for teacher fallback:', err);
         }
-        matchedDoc = emilData;
-        matchedDocId = emilDocId;
+      }
+
+      // 3b. Fallback: Auto-create/restore registered Guru Wali records (EMIL AIDIN, WARDAYANTI, FIRMAN)
+      if (!matchedDoc) {
+        const knownGuruFallback = [
+          { nip: '199005252023211010', name: 'EMIL AIDIN, S.Pd', classes: 'Guru Wali' },
+          { nip: '199612122023212032', name: 'WARDAYANTI, S.Pd', classes: 'XI TJKT 2' },
+          { nip: '198207132009021004', name: 'FIRMAN, S.Pd', classes: 'X TITL 2' },
+        ].find(
+          (g) =>
+            g.nip === cleanNip ||
+            g.nip === strippedNip ||
+            (cleanNip.length >= 5 && !/^\d+$/.test(strippedNip) && g.name.toLowerCase().includes(cleanNip.toLowerCase()))
+        );
+
+        if (knownGuruFallback) {
+          const guruDocId = `teacher-${knownGuruFallback.nip}`;
+          const guruData = {
+            id: guruDocId,
+            nip: knownGuruFallback.nip,
+            name: knownGuruFallback.name,
+            classes: knownGuruFallback.classes,
+            role: 'guru_wali',
+            email: `${knownGuruFallback.nip}@smkn3pangkep.sch.id`,
+            phone: '-',
+            password: 'bismillah',
+            isActive: true,
+            totalMemorized: 0,
+            totalInProcess: 0,
+            totalRemaining: 38,
+            createdAt: new Date().toISOString(),
+          };
+          try {
+            await setDoc(doc(db, 'teachers', guruDocId), guruData);
+          } catch (e) {
+            console.error('Error persisting known teacher record:', e);
+          }
+          matchedDoc = guruData;
+          matchedDocId = guruDocId;
+        }
       }
 
       // 4. Fallback for the 4 Pegawai TU
@@ -229,7 +306,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           (s) =>
             s.nip === cleanNip ||
             s.nip === strippedNip ||
-            (cleanNip.length > 5 && s.name.toLowerCase().includes(cleanNip.toLowerCase()))
+            (cleanNip.length > 5 && !/^\d+$/.test(strippedNip) && s.name.toLowerCase().includes(cleanNip.toLowerCase()))
         );
 
         if (staffFallback) {
